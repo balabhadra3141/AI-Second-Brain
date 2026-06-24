@@ -14,6 +14,8 @@ interface SpatialGridProps {
   onDelete: (id: string) => void;
   onToggleTask: (id: string) => void;
   onRetry?: (id: string) => void;
+  onUpdate?: (id: string, content: string) => void;
+  focusedThoughtId?: string | null;
 }
 
 const emptyVariants: Variants = {
@@ -28,6 +30,8 @@ export default function SpatialGrid({
   onDelete,
   onToggleTask,
   onRetry,
+  onUpdate,
+  focusedThoughtId,
 }: SpatialGridProps) {
   // Empty state
   if (!isProcessing && thoughts.length === 0) {
@@ -67,6 +71,8 @@ export default function SpatialGrid({
         <AnimatePresence mode="popLayout">
           {thoughts.map((thought, index) => {
             const originalId = (thought as any).originalId || thought.id;
+            const isFocused = thought.id === focusedThoughtId;
+            
             const cardContent = (() => {
               switch (thought.type) {
                 case 'task':
@@ -77,6 +83,8 @@ export default function SpatialGrid({
                       onToggle={() => onToggleTask(thought.id)}
                       onDelete={() => onDelete(thought.id)}
                       onRetry={() => onRetry?.(thought.id)}
+                      onUpdate={(content) => onUpdate?.(thought.id, content)}
+                      isFocused={isFocused}
                     />
                   );
                 case 'knowledge':
@@ -86,6 +94,8 @@ export default function SpatialGrid({
                       thought={thought}
                       onDelete={() => onDelete(thought.id)}
                       onRetry={() => onRetry?.(thought.id)}
+                      onUpdate={(content) => onUpdate?.(thought.id, content)}
+                      isFocused={isFocused}
                     />
                   );
                 case 'idea':
@@ -95,6 +105,8 @@ export default function SpatialGrid({
                       thought={thought}
                       onDelete={() => onDelete(thought.id)}
                       onRetry={() => onRetry?.(thought.id)}
+                      onUpdate={(content) => onUpdate?.(thought.id, content)}
+                      isFocused={isFocused}
                     />
                   );
                 default:

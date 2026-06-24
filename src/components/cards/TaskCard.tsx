@@ -1,15 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar } from 'lucide-react';
 import CardWrapper from './CardWrapper';
 import { Thought, Priority } from '@/types';
+import InlineEditor from '../InlineEditor';
 
 interface TaskCardProps {
   thought: Thought;
   onToggle: () => void;
   onDelete: () => void;
   onRetry?: () => void;
+  onUpdate?: (content: string) => void;
+  isFocused?: boolean;
 }
 
 const priorityStyles: Record<Priority, { dot: string; label: string; pill: string }> = {
@@ -18,25 +22,32 @@ const priorityStyles: Record<Priority, { dot: string; label: string; pill: strin
   low: { dot: 'bg-priority-low', label: 'Low', pill: 'bg-slate-50 text-slate-500 border-slate-100' },
 };
 
-export default function TaskCard({ thought, onToggle, onDelete, onRetry }: TaskCardProps) {
+export default function TaskCard({ thought, onToggle, onDelete, onRetry, onUpdate, isFocused }: TaskCardProps) {
+  const [isEditing, setIsEditing] = useState(false);
   const priority = thought.priority || 'low';
   const ps = priorityStyles[priority];
 
   return (
     <CardWrapper
       type="task"
+      id={thought.id}
+      isFocused={isFocused}
       timestamp={thought.createdAt}
       onDelete={onDelete}
       onCopy={() => navigator.clipboard.writeText(thought.content)}
+      onEdit={() => setIsEditing(true)}
       className={`bg-task-bg/60 border-task-border/70 transition-opacity duration-500 ${thought.completed ? 'opacity-50' : 'opacity-100'}`}
       isOptimistic={thought.isOptimistic}
       hasFailed={thought.hasFailed}
       onRetry={onRetry}
     >
       <div className={thought.completed ? 'task-completed' : ''}>
+        <button data-action="edit-thought" className="hidden" onClick={() => setIsEditing(true)} />
+        
         {/* Checkbox + content */}
         <div className="flex gap-3">
           <button
+            data-action="toggle-task"
             onClick={onToggle}
             className="mt-0.5 flex-shrink-0"
             aria-label={thought.completed ? 'Mark incomplete' : 'Mark complete'}
@@ -74,13 +85,27 @@ export default function TaskCard({ thought, onToggle, onDelete, onRetry }: TaskC
             </motion.div>
           </button>
 
-          <p
-            className={`task-text flex-1 text-[14px] leading-relaxed transition-colors duration-300 ${
-              thought.completed ? 'text-ink-faint' : 'text-foreground'
-            }`}
-          >
-            {thought.content}
-          </p>
+          <div className="flex-1 min-w-0">
+            {isEditing ? (
+              <InlineEditor
+                initialContent={thought.content}
+                onSave={(newContent) => {
+                  if (onUpdate) onUpdate(newContent);
+                  setIsEditing(false);
+                }}
+                onCancel={() => setIsEditing(false)}
+                className="text-[14px] leading-relaxed text-foreground"
+              />
+            ) : (
+              <p
+                className={`task-text flex-1 text-[14px] leading-relaxed transition-colors duration-300 ${
+                  thought.completed ? 'text-ink-faint' : 'text-foreground'
+                }`}
+              >
+                {thought.content}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Meta row */}

@@ -11,16 +11,18 @@ import { useThoughts } from '@/hooks/useThoughts';
 import { useDropZone } from '@/hooks/useDropZone';
 import { useSettings } from '@/hooks/useSettings';
 import { useTimelineFilter } from '@/hooks/useTimelineFilter';
+import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 
 export default function Home() {
-  const { thoughts, isLoading, addThought, deleteThought, toggleTask, retryThought } = useThoughts();
+  const { thoughts, isLoading, addThought, deleteThought, toggleTask, retryThought, updateThought } = useThoughts();
   const { filteredThoughts, scrubberValue, setScrubberValue, cutoffText } = useTimelineFilter(thoughts);
   const { isDragging } = useDropZone();
   const { settings, updateSetting, resetSettings } = useSettings();
 
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const { focusedThoughtId } = useSpatialNavigation(isPaletteOpen);
 
   // Drawer state
   const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
@@ -99,6 +101,8 @@ export default function Home() {
           onDelete={deleteThought}
           onToggleTask={toggleTask}
           onRetry={retryThought}
+          onUpdate={updateThought}
+          focusedThoughtId={focusedThoughtId}
         />
       </main>
 

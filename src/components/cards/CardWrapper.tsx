@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { MoreHorizontal, Trash2, Copy } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MoreHorizontal, Trash2, Copy, Edit2 } from 'lucide-react';
 import { ThoughtType } from '@/types';
 
 interface CardWrapperProps {
@@ -16,6 +16,9 @@ interface CardWrapperProps {
   hasFailed?: boolean;
   onRetry?: () => void;
   layoutId?: string;
+  isFocused?: boolean;
+  id?: string;
+  onEdit?: () => void;
 }
 
 const typeBadge: Record<ThoughtType, { label: string; className: string }> = {
@@ -58,6 +61,9 @@ export default function CardWrapper({
   hasFailed,
   onRetry,
   layoutId,
+  isFocused,
+  id,
+  onEdit,
 }: CardWrapperProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -75,30 +81,37 @@ export default function CardWrapper({
   }, [isMenuOpen]);
 
   const handleCopy = () => {
-    onCopy();
-    setCopied(true);
-    setIsMenuOpen(false);
-    setTimeout(() => setCopied(false), 1800);
+    try {
+      onCopy();
+      setCopied(true);
+      setIsMenuOpen(false);
+      setTimeout(() => setCopied(false), 1800);
+    } catch (e) {
+      console.error('Clipboard write failed:', e);
+    }
   };
 
   return (
     <motion.article
       layoutId={layoutId}
+      data-thought-id={id}
       className={`group relative rounded-xl border p-5 transition-all duration-300 ${
         isOptimistic ? 'opacity-70 pointer-events-none overflow-hidden before:absolute before:inset-0 before:skeleton-shimmer before:opacity-40 before:z-0' : ''
       } ${
         hasFailed ? 'bg-red-50/50 border-red-200/60 shadow-sm' : 'bg-surface-raised shadow-black/[0.04] hover:shadow-md'
+      } ${
+        isFocused ? 'ring-2 ring-zinc-900 dark:ring-white ring-offset-2 ring-offset-background -translate-y-1 shadow-lg' : ''
       } ${className}`}
     >
       {/* Card header */}
-      <div className="mb-3.5 flex items-center justify-between relative z-10">
+      <div className="relative z-[60] mb-3 flex items-start justify-between">
         <div className="flex items-center gap-2">
           <span
-            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${hasFailed ? 'bg-red-100 text-red-700 border-red-200' : badge.className}`}
+            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest ${hasFailed ? 'bg-red-100 text-red-700 border-red-200' : badge.className}`}
           >
             {badge.label}
           </span>
-          <span className={`text-[11px] ${hasFailed ? 'text-red-500/70' : 'text-ink-faint'} flex items-center gap-1.5`}>
+          <span className={`text-[11px] font-medium ${hasFailed ? 'text-red-500/70' : 'text-ink-faint'}`}>
             {formatTime(timestamp)}
             {isOptimistic && (
               <span className="flex items-center gap-1 ml-1 text-blue-500 font-medium">
@@ -113,7 +126,7 @@ export default function CardWrapper({
         </div>
 
         {/* More menu or Retry Button */}
-        <div className="relative" ref={menuRef}>
+        <div className="relative z-50" ref={menuRef}>
           {hasFailed ? (
             <button
               onClick={(e) => { e.preventDefault(); onRetry?.(); }}
@@ -131,33 +144,50 @@ export default function CardWrapper({
                 <MoreHorizontal size={15} strokeWidth={1.8} />
               </button>
 
-              {isMenuOpen && !isOptimistic && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.93, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ duration: 0.12, ease: 'easeOut' }}
-                  className="absolute right-0 top-full z-10 mt-1.5 w-36 overflow-hidden rounded-xl border border-border-subtle bg-surface-raised shadow-xl shadow-black/[0.08]"
-                >
+              <AnimatePresence>
+                {isMenuOpen && !isOptimistic && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    className="absolute right-0 top-8 z-50 w-36 origin-top-right overflow-hidden rounded-xl border border-black/5 bg-white/70 shadow-xl backdrop-blur-xl"
+                  >
+                  {onEdit && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsMenuOpen(false);
+                        onEdit();
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium text-zinc-700 transition-colors hover:bg-black/5 hover:text-zinc-900"
+                    >
+                      <Edit2 size={13} strokeWidth={1.8} />
+                      Edit
+                    </button>
+                  )}
                   <button
                     onClick={handleCopy}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium text-ink-muted transition-colors hover:bg-background hover:text-foreground"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium text-zinc-700 transition-colors hover:bg-black/5 hover:text-zinc-900"
                   >
                     <Copy size={13} strokeWidth={1.8} />
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
-                  <div className="mx-2 h-px bg-border-subtle/60" />
+                  <div className="mx-2 h-px bg-black/5" />
                   <button
+                    data-action="delete-thought"
                     onClick={() => {
                       onDelete();
                       setIsMenuOpen(false);
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium text-red-500 transition-colors hover:bg-red-50"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium text-red-600 transition-colors hover:bg-red-50"
                   >
                     <Trash2 size={13} strokeWidth={1.8} />
                     Delete
                   </button>
                 </motion.div>
               )}
+              </AnimatePresence>
             </>
           )}
         </div>

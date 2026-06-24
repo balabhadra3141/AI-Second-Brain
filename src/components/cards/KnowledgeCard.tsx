@@ -5,28 +5,37 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Link2, Sparkles, BookOpen } from 'lucide-react';
 import CardWrapper from './CardWrapper';
 import { Thought } from '@/types';
+import InlineEditor from '../InlineEditor';
 
 interface KnowledgeCardProps {
   thought: Thought;
   onDelete: () => void;
   onRetry?: () => void;
+  onUpdate?: (content: string) => void;
+  isFocused?: boolean;
 }
 
-export default function KnowledgeCard({ thought, onDelete, onRetry }: KnowledgeCardProps) {
+export default function KnowledgeCard({ thought, onDelete, onRetry, onUpdate, isFocused }: KnowledgeCardProps) {
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [connectionsOpen, setConnectionsOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   return (
     <CardWrapper
       type="knowledge"
+      id={thought.id}
+      isFocused={isFocused}
       timestamp={thought.createdAt}
       onDelete={onDelete}
       onCopy={() => navigator.clipboard.writeText(thought.content)}
+      onEdit={() => setIsEditing(true)}
       className="bg-knowledge-bg border-knowledge-border/80"
       isOptimistic={thought.isOptimistic}
       hasFailed={thought.hasFailed}
       onRetry={onRetry}
     >
+      <button data-action="edit-thought" className="hidden" onClick={() => setIsEditing(true)} />
+
       {/* Editorial quote style with thick left accent */}
       <div className="border-l-[3px] border-knowledge-accent/60 pl-4">
         <div className="mb-1.5 flex items-center gap-1.5">
@@ -35,9 +44,21 @@ export default function KnowledgeCard({ thought, onDelete, onRetry }: KnowledgeC
             Knowledge
           </span>
         </div>
-        <p className="font-serif text-[14.5px] leading-[1.8] text-foreground italic">
-          {thought.content}
-        </p>
+        {isEditing ? (
+          <InlineEditor
+            initialContent={thought.content}
+            onSave={(newContent) => {
+              if (onUpdate) onUpdate(newContent);
+              setIsEditing(false);
+            }}
+            onCancel={() => setIsEditing(false)}
+            className="font-serif text-[14.5px] leading-[1.8] text-foreground italic"
+          />
+        ) : (
+          <p className="font-serif text-[14.5px] leading-[1.8] text-foreground italic">
+            {thought.content}
+          </p>
+        )}
         {thought.source && (
           <p className="mt-2 text-[11px] font-medium text-ink-faint tracking-wide">
             — {thought.source}
@@ -51,6 +72,7 @@ export default function KnowledgeCard({ thought, onDelete, onRetry }: KnowledgeC
         {thought.insights && (
           <div className="overflow-hidden rounded-xl border border-border-subtle/70">
             <button
+              data-action="expand-insights"
               onClick={() => setInsightsOpen(!insightsOpen)}
               id={`insight-toggle-${thought.id}`}
               className="flex w-full items-center gap-2 px-3 py-2.5 text-[12px] font-semibold text-ink-muted transition-colors duration-150 hover:bg-background/80"

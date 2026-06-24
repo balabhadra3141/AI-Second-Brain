@@ -5,15 +5,19 @@ import { motion } from 'framer-motion';
 import { Lightbulb, CheckSquare, Square } from 'lucide-react';
 import CardWrapper from './CardWrapper';
 import { Thought } from '@/types';
+import InlineEditor from '../InlineEditor';
 
 interface IdeaCardProps {
   thought: Thought;
   onDelete: () => void;
   onRetry?: () => void;
+  onUpdate?: (content: string) => void;
+  isFocused?: boolean;
 }
 
-export default function IdeaCard({ thought, onDelete, onRetry }: IdeaCardProps) {
+export default function IdeaCard({ thought, onDelete, onRetry, onUpdate, isFocused }: IdeaCardProps) {
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
+  const [isEditing, setIsEditing] = useState(false);
 
   const toggleStep = (index: number) => {
     setCheckedSteps((prev) => {
@@ -30,14 +34,19 @@ export default function IdeaCard({ thought, onDelete, onRetry }: IdeaCardProps) 
   return (
     <CardWrapper
       type="idea"
+      id={thought.id}
+      isFocused={isFocused}
       timestamp={thought.createdAt}
       onDelete={onDelete}
       onCopy={() => navigator.clipboard.writeText(thought.content)}
+      onEdit={() => setIsEditing(true)}
       className="bg-idea-bg border-idea-border/70"
       isOptimistic={thought.isOptimistic}
       hasFailed={thought.hasFailed}
       onRetry={onRetry}
     >
+      <button data-action="edit-thought" className="hidden" onClick={() => setIsEditing(true)} />
+
       {/* Idea content */}
       <div className="flex gap-3">
         <div className="mt-0.5 flex-shrink-0">
@@ -45,9 +54,23 @@ export default function IdeaCard({ thought, onDelete, onRetry }: IdeaCardProps) 
             <Lightbulb size={15} strokeWidth={1.8} />
           </div>
         </div>
-        <p className="text-[14px] leading-relaxed text-foreground">
-          {thought.content}
-        </p>
+        <div className="flex-1 min-w-0">
+          {isEditing ? (
+            <InlineEditor
+              initialContent={thought.content}
+              onSave={(newContent) => {
+                if (onUpdate) onUpdate(newContent);
+                setIsEditing(false);
+              }}
+              onCancel={() => setIsEditing(false)}
+              className="text-[14px] leading-relaxed text-foreground"
+            />
+          ) : (
+            <p className="text-[14px] leading-relaxed text-foreground">
+              {thought.content}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Next Practical Steps — tracked checklist */}

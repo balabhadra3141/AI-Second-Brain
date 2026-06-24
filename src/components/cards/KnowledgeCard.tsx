@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Link2, Sparkles } from 'lucide-react';
+import { ChevronDown, Link2, Sparkles, BookOpen } from 'lucide-react';
 import CardWrapper from './CardWrapper';
 import { Thought } from '@/types';
 
@@ -21,10 +21,17 @@ export default function KnowledgeCard({ thought, onDelete }: KnowledgeCardProps)
       timestamp={thought.createdAt}
       onDelete={onDelete}
       onCopy={() => navigator.clipboard.writeText(thought.content)}
+      className="bg-knowledge-bg border-knowledge-border/80"
     >
-      {/* Editorial quote style */}
-      <div className="border-l-2 border-knowledge-accent/40 pl-4">
-        <p className="font-serif text-[15px] leading-[1.75] text-foreground italic">
+      {/* Editorial quote style with thick left accent */}
+      <div className="border-l-[3px] border-knowledge-accent/60 pl-4">
+        <div className="mb-1.5 flex items-center gap-1.5">
+          <BookOpen size={12} strokeWidth={2} className="text-knowledge-accent" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-knowledge-accent">
+            Knowledge
+          </span>
+        </div>
+        <p className="font-serif text-[14.5px] leading-[1.8] text-foreground italic">
           {thought.content}
         </p>
         {thought.source && (
@@ -38,13 +45,14 @@ export default function KnowledgeCard({ thought, onDelete }: KnowledgeCardProps)
       <div className="mt-4 space-y-1">
         {/* Insights Summary */}
         {thought.insights && (
-          <div>
+          <div className="overflow-hidden rounded-xl border border-border-subtle/70">
             <button
               onClick={() => setInsightsOpen(!insightsOpen)}
-              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] font-semibold text-ink-muted transition-colors duration-150 hover:bg-background"
+              id={`insight-toggle-${thought.id}`}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-[12px] font-semibold text-ink-muted transition-colors duration-150 hover:bg-background/80"
             >
-              <Sparkles size={13} strokeWidth={1.8} />
-              <span>Insights Summary</span>
+              <Sparkles size={13} strokeWidth={1.8} className="text-violet-400" />
+              <span>Reveal Insights Summary</span>
               <motion.span
                 animate={{ rotate: insightsOpen ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
@@ -63,9 +71,11 @@ export default function KnowledgeCard({ thought, onDelete }: KnowledgeCardProps)
                   transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                   className="overflow-hidden"
                 >
-                  <p className="px-2 py-2 text-[13px] leading-relaxed text-ink-muted">
-                    {thought.insights}
-                  </p>
+                  <div className="border-t border-border-subtle/60 bg-background/50 px-3 py-3">
+                    <p className="text-[13px] leading-relaxed text-ink-muted">
+                      {thought.insights}
+                    </p>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -74,12 +84,13 @@ export default function KnowledgeCard({ thought, onDelete }: KnowledgeCardProps)
 
         {/* Context Connections */}
         {thought.connections && thought.connections.length > 0 && (
-          <div>
+          <div className="overflow-hidden rounded-xl border border-border-subtle/70">
             <button
               onClick={() => setConnectionsOpen(!connectionsOpen)}
-              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] font-semibold text-ink-muted transition-colors duration-150 hover:bg-background"
+              id={`connections-toggle-${thought.id}`}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-[12px] font-semibold text-ink-muted transition-colors duration-150 hover:bg-background/80"
             >
-              <Link2 size={13} strokeWidth={1.8} />
+              <Link2 size={13} strokeWidth={1.8} className="text-blue-400" />
               <span>
                 Context Connections{' '}
                 <span className="font-normal text-ink-faint">
@@ -104,19 +115,25 @@ export default function KnowledgeCard({ thought, onDelete }: KnowledgeCardProps)
                   transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                   className="overflow-hidden"
                 >
-                  <div className="space-y-1.5 px-2 py-2">
-                    {thought.connections.map((conn) => (
-                      <div
+                  <div className="space-y-1.5 border-t border-border-subtle/60 bg-background/50 px-3 py-3">
+                    {thought.connections.map((conn, i) => (
+                      <motion.div
                         key={conn.id}
-                        className="rounded-lg border border-border-subtle/60 bg-background px-3 py-2 transition-colors duration-150 hover:border-border-hover cursor-pointer"
+                        initial={{ opacity: 0, x: -6 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05, duration: 0.2 }}
+                        className="group flex cursor-pointer items-start gap-2.5 rounded-lg border border-border-subtle/60 bg-surface-raised px-3 py-2 transition-all duration-150 hover:border-border-hover hover:shadow-sm"
                       >
-                        <p className="text-[12px] font-medium text-foreground">
-                          {conn.title}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-ink-faint line-clamp-1">
-                          {conn.preview}
-                        </p>
-                      </div>
+                        <div className="mt-0.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-300" />
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-medium text-foreground group-hover:text-accent transition-colors">
+                            {conn.title}
+                          </p>
+                          <p className="mt-0.5 truncate text-[11px] text-ink-faint">
+                            {conn.preview}
+                          </p>
+                        </div>
+                      </motion.div>
                     ))}
                   </div>
                 </motion.div>

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MoreHorizontal, Trash2, Copy, Pencil } from 'lucide-react';
+import { MoreHorizontal, Trash2, Copy } from 'lucide-react';
 import { ThoughtType } from '@/types';
 
 interface CardWrapperProps {
@@ -17,15 +17,15 @@ interface CardWrapperProps {
 const typeBadge: Record<ThoughtType, { label: string; className: string }> = {
   task: {
     label: 'Task',
-    className: 'bg-task-bg text-emerald-700 border border-task-border',
+    className: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
   },
   knowledge: {
     label: 'Knowledge',
-    className: 'bg-knowledge-bg text-slate-600 border border-knowledge-border',
+    className: 'bg-slate-100 text-slate-600 border border-slate-200',
   },
   idea: {
     label: 'Idea',
-    className: 'bg-idea-bg text-amber-700 border border-idea-border',
+    className: 'bg-amber-50 text-amber-700 border border-amber-100',
   },
 };
 
@@ -52,6 +52,7 @@ export default function CardWrapper({
   className = '',
 }: CardWrapperProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const badge = typeBadge[type];
 
@@ -65,18 +66,20 @@ export default function CardWrapper({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMenuOpen]);
 
+  const handleCopy = () => {
+    onCopy();
+    setCopied(true);
+    setIsMenuOpen(false);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
   return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8, transition: { duration: 0.2 } }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className={`group relative rounded-xl border border-border-subtle bg-surface-raised p-5 transition-shadow duration-300 hover:shadow-md hover:shadow-black/[0.03] ${className}`}
+    <article
+      className={`group relative rounded-xl border bg-surface-raised p-5 transition-shadow duration-300 hover:shadow-md hover:shadow-black/[0.04] ${className}`}
     >
       {/* Card header */}
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
+      <div className="mb-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <span
             className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${badge.className}`}
           >
@@ -89,7 +92,7 @@ export default function CardWrapper({
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-ink-faint opacity-0 transition-all duration-200 hover:bg-background hover:text-ink-muted group-hover:opacity-100"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-ink-faint opacity-0 transition-all duration-200 hover:bg-background/80 hover:text-ink-muted group-hover:opacity-100"
             aria-label="Card actions"
           >
             <MoreHorizontal size={15} strokeWidth={1.8} />
@@ -97,20 +100,19 @@ export default function CardWrapper({
 
           {isMenuOpen && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="absolute right-0 top-full z-10 mt-1 w-36 overflow-hidden rounded-lg border border-border-subtle bg-surface-raised shadow-lg shadow-black/[0.05]"
+              initial={{ opacity: 0, scale: 0.93, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.12, ease: 'easeOut' }}
+              className="absolute right-0 top-full z-10 mt-1.5 w-36 overflow-hidden rounded-xl border border-border-subtle bg-surface-raised shadow-xl shadow-black/[0.08]"
             >
               <button
-                onClick={() => {
-                  onCopy();
-                  setIsMenuOpen(false);
-                }}
+                onClick={handleCopy}
                 className="flex w-full items-center gap-2 px-3 py-2 text-[12px] font-medium text-ink-muted transition-colors hover:bg-background hover:text-foreground"
               >
                 <Copy size={13} strokeWidth={1.8} />
-                Copy
+                {copied ? 'Copied!' : 'Copy'}
               </button>
+              <div className="mx-2 h-px bg-border-subtle/60" />
               <button
                 onClick={() => {
                   onDelete();
@@ -128,6 +130,6 @@ export default function CardWrapper({
 
       {/* Card content */}
       {children}
-    </motion.article>
+    </article>
   );
 }

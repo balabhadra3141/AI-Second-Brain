@@ -11,10 +11,10 @@ interface TaskCardProps {
   onDelete: () => void;
 }
 
-const priorityStyles: Record<Priority, { dot: string; label: string }> = {
-  high: { dot: 'bg-priority-high', label: 'High' },
-  medium: { dot: 'bg-priority-medium', label: 'Med' },
-  low: { dot: 'bg-priority-low', label: 'Low' },
+const priorityStyles: Record<Priority, { dot: string; label: string; pill: string }> = {
+  high: { dot: 'bg-priority-high', label: 'High', pill: 'bg-red-50 text-red-600 border-red-100' },
+  medium: { dot: 'bg-priority-medium', label: 'Med', pill: 'bg-amber-50 text-amber-600 border-amber-100' },
+  low: { dot: 'bg-priority-low', label: 'Low', pill: 'bg-slate-50 text-slate-500 border-slate-100' },
 };
 
 export default function TaskCard({ thought, onToggle, onDelete }: TaskCardProps) {
@@ -27,7 +27,7 @@ export default function TaskCard({ thought, onToggle, onDelete }: TaskCardProps)
       timestamp={thought.createdAt}
       onDelete={onDelete}
       onCopy={() => navigator.clipboard.writeText(thought.content)}
-      className={thought.completed ? 'opacity-60' : ''}
+      className={`bg-task-bg/60 border-task-border/70 transition-opacity duration-500 ${thought.completed ? 'opacity-50' : 'opacity-100'}`}
     >
       <div className={thought.completed ? 'task-completed' : ''}>
         {/* Checkbox + content */}
@@ -41,9 +41,9 @@ export default function TaskCard({ thought, onToggle, onDelete }: TaskCardProps)
               className={`flex h-[18px] w-[18px] items-center justify-center rounded-[5px] border-[1.5px] transition-colors duration-200 ${
                 thought.completed
                   ? 'border-emerald-500 bg-emerald-500'
-                  : 'border-border-hover bg-transparent hover:border-emerald-400'
+                  : 'border-task-border bg-white hover:border-emerald-400'
               }`}
-              whileTap={{ scale: 0.85 }}
+              whileTap={{ scale: 0.82 }}
             >
               {thought.completed && (
                 <motion.svg
@@ -71,7 +71,7 @@ export default function TaskCard({ thought, onToggle, onDelete }: TaskCardProps)
           </button>
 
           <p
-            className={`task-text text-[14px] leading-relaxed transition-colors duration-300 ${
+            className={`task-text flex-1 text-[14px] leading-relaxed transition-colors duration-300 ${
               thought.completed ? 'text-ink-faint' : 'text-foreground'
             }`}
           >
@@ -80,20 +80,20 @@ export default function TaskCard({ thought, onToggle, onDelete }: TaskCardProps)
         </div>
 
         {/* Meta row */}
-        <div className="mt-3 flex items-center gap-3 pl-[30px]">
+        <div className="mt-3 flex flex-wrap items-center gap-2 pl-[30px]">
           {/* Priority badge */}
-          <div className="flex items-center gap-1.5">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${ps.pill}`}
+          >
             <span className={`h-[5px] w-[5px] rounded-full ${ps.dot}`} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-              {ps.label}
-            </span>
-          </div>
+            {ps.label}
+          </span>
 
-          {/* Deadline */}
+          {/* Deadline pill */}
           {thought.deadline && (
-            <div className="flex items-center gap-1 text-ink-faint">
-              <Calendar size={11} strokeWidth={1.8} />
-              <span className="text-[11px] font-medium">{thought.deadline}</span>
+            <div className="flex items-center gap-1 rounded-md border border-border-subtle bg-background px-2 py-0.5">
+              <Calendar size={10} strokeWidth={2} className="text-ink-faint" />
+              <span className="text-[10px] font-medium text-ink-muted">{thought.deadline}</span>
             </div>
           )}
         </div>

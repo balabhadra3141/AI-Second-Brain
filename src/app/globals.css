@@ -3,12 +3,12 @@
 
 :root {
   --background: #FAFAFA;
-  --foreground: #1A1A1A;
+  --foreground: #111111;
   --surface-raised: #FFFFFF;
-  --ink-muted: #6B7280;
-  --ink-faint: #9CA3AF;
-  --border-subtle: #E5E7EB;
-  --border-hover: #D1D5DB;
+  --ink-muted: #52525B;
+  --ink-faint: #A1A1AA;
+  --border-subtle: #E4E4E7;
+  --border-hover: #D4D4D8;
   --accent: #2563EB;
   --accent-soft: #DBEAFE;
   --status-connected: #22C55E;
@@ -22,9 +22,9 @@
   --idea-border: #FDE68A;
   --priority-high: #EF4444;
   --priority-medium: #F59E0B;
-  --priority-low: #6B7280;
+  --priority-low: #A1A1AA;
   --skeleton-base: #F3F4F6;
-  --skeleton-shine: #E5E7EB;
+  --skeleton-shine: #E9EAEC;
 }
 
 @theme inline {
@@ -139,4 +139,16 @@ textarea {
 ::selection {
   background: var(--accent-soft);
   color: var(--foreground);
+}
+
+/* Masonry — prevent cards from breaking across columns */
+.break-inside-avoid {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Gradient fade for long content */
+.content-fade {
+  mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
 }

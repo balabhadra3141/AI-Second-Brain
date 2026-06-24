@@ -12,10 +12,11 @@ interface KnowledgeCardProps {
   onDelete: () => void;
   onRetry?: () => void;
   onUpdate?: (content: string) => void;
+  onSynthesize?: (draggedId: string, targetId: string) => void;
   isFocused?: boolean;
 }
 
-export default function KnowledgeCard({ thought, onDelete, onRetry, onUpdate, isFocused }: KnowledgeCardProps) {
+export default function KnowledgeCard({ thought, onDelete, onRetry, onUpdate, onSynthesize, isFocused }: KnowledgeCardProps) {
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [connectionsOpen, setConnectionsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -33,6 +34,7 @@ export default function KnowledgeCard({ thought, onDelete, onRetry, onUpdate, is
       isOptimistic={thought.isOptimistic}
       hasFailed={thought.hasFailed}
       onRetry={onRetry}
+      onSynthesize={onSynthesize}
     >
       <button data-action="edit-thought" className="hidden" onClick={() => setIsEditing(true)} />
 

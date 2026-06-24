@@ -15,6 +15,7 @@ interface SpatialGridProps {
   onToggleTask: (id: string) => void;
   onRetry?: (id: string) => void;
   onUpdate?: (id: string, content: string) => void;
+  onSynthesize?: (draggedId: string, targetId: string) => void;
   focusedThoughtId?: string | null;
 }
 
@@ -31,6 +32,7 @@ export default function SpatialGrid({
   onToggleTask,
   onRetry,
   onUpdate,
+  onSynthesize,
   focusedThoughtId,
 }: SpatialGridProps) {
   // Empty state
@@ -84,6 +86,7 @@ export default function SpatialGrid({
                       onDelete={() => onDelete(thought.id)}
                       onRetry={() => onRetry?.(thought.id)}
                       onUpdate={(content) => onUpdate?.(thought.id, content)}
+                      onSynthesize={onSynthesize}
                       isFocused={isFocused}
                     />
                   );
@@ -95,6 +98,7 @@ export default function SpatialGrid({
                       onDelete={() => onDelete(thought.id)}
                       onRetry={() => onRetry?.(thought.id)}
                       onUpdate={(content) => onUpdate?.(thought.id, content)}
+                      onSynthesize={onSynthesize}
                       isFocused={isFocused}
                     />
                   );
@@ -106,6 +110,7 @@ export default function SpatialGrid({
                       onDelete={() => onDelete(thought.id)}
                       onRetry={() => onRetry?.(thought.id)}
                       onUpdate={(content) => onUpdate?.(thought.id, content)}
+                      onSynthesize={onSynthesize}
                       isFocused={isFocused}
                     />
                   );

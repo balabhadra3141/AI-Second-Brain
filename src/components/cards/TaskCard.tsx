@@ -13,6 +13,7 @@ interface TaskCardProps {
   onDelete: () => void;
   onRetry?: () => void;
   onUpdate?: (content: string) => void;
+  onSynthesize?: (draggedId: string, targetId: string) => void;
   isFocused?: boolean;
 }
 
@@ -22,7 +23,7 @@ const priorityStyles: Record<Priority, { dot: string; label: string; pill: strin
   low: { dot: 'bg-priority-low', label: 'Low', pill: 'bg-slate-50 text-slate-500 border-slate-100' },
 };
 
-export default function TaskCard({ thought, onToggle, onDelete, onRetry, onUpdate, isFocused }: TaskCardProps) {
+export default function TaskCard({ thought, onToggle, onDelete, onRetry, onUpdate, onSynthesize, isFocused }: TaskCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const priority = thought.priority || 'low';
   const ps = priorityStyles[priority];
@@ -40,6 +41,7 @@ export default function TaskCard({ thought, onToggle, onDelete, onRetry, onUpdat
       isOptimistic={thought.isOptimistic}
       hasFailed={thought.hasFailed}
       onRetry={onRetry}
+      onSynthesize={onSynthesize}
     >
       <div className={thought.completed ? 'task-completed' : ''}>
         <button data-action="edit-thought" className="hidden" onClick={() => setIsEditing(true)} />

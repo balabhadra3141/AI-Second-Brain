@@ -12,10 +12,11 @@ interface IdeaCardProps {
   onDelete: () => void;
   onRetry?: () => void;
   onUpdate?: (content: string) => void;
+  onSynthesize?: (draggedId: string, targetId: string) => void;
   isFocused?: boolean;
 }
 
-export default function IdeaCard({ thought, onDelete, onRetry, onUpdate, isFocused }: IdeaCardProps) {
+export default function IdeaCard({ thought, onDelete, onRetry, onUpdate, onSynthesize, isFocused }: IdeaCardProps) {
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
   const [isEditing, setIsEditing] = useState(false);
 
@@ -44,6 +45,7 @@ export default function IdeaCard({ thought, onDelete, onRetry, onUpdate, isFocus
       isOptimistic={thought.isOptimistic}
       hasFailed={thought.hasFailed}
       onRetry={onRetry}
+      onSynthesize={onSynthesize}
     >
       <button data-action="edit-thought" className="hidden" onClick={() => setIsEditing(true)} />
 

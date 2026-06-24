@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { MoreHorizontal, Trash2, Copy, Edit2 } from 'lucide-react';
 import { ThoughtType } from '@/types';
 
@@ -19,6 +19,7 @@ interface CardWrapperProps {
   isFocused?: boolean;
   id?: string;
   onEdit?: () => void;
+  onSynthesize?: (draggedId: string, targetId: string) => void;
 }
 
 const typeBadge: Record<ThoughtType, { label: string; className: string }> = {
@@ -64,6 +65,7 @@ export default function CardWrapper({
   isFocused,
   id,
   onEdit,
+  onSynthesize,
 }: CardWrapperProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -91,12 +93,45 @@ export default function CardWrapper({
     }
   };
 
+  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (!id || !onSynthesize) return;
+    
+    const { x, y } = info.point;
+    const draggedId = id;
+    
+    const allCards = document.querySelectorAll('article[data-thought-id]');
+    let targetId: string | null = null;
+
+    allCards.forEach((card) => {
+      const cardId = card.getAttribute('data-thought-id');
+      if (cardId === draggedId) return;
+
+      const rect = card.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        targetId = cardId;
+      }
+    });
+
+    if (targetId) {
+      onSynthesize(draggedId, targetId);
+    }
+  };
+
   return (
     <motion.article
       layoutId={layoutId}
       data-thought-id={id}
-      className={`group relative rounded-xl border p-5 transition-all duration-300 ${
-        isOptimistic ? 'opacity-70 pointer-events-none overflow-hidden before:absolute before:inset-0 before:skeleton-shimmer before:opacity-40 before:z-0' : ''
+      drag
+      dragSnapToOrigin={true}
+      onDragEnd={handleDragEnd}
+      whileDrag={{ 
+        position: 'relative', 
+        zIndex: 9999, 
+        scale: 1.05, 
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+      }}
+      className={`group relative transform-gpu rounded-xl border p-5 transition-all duration-300 ${
+        isOptimistic ? 'opacity-70 pointer-events-none overflow-hidden before:absolute before:inset-0 before:skeleton-shimmer before:opacity-40 before:z-0 ring-4 ring-zinc-900/10 dark:ring-white/10 animate-pulse' : ''
       } ${
         hasFailed ? 'bg-red-50/50 border-red-200/60 shadow-sm' : 'bg-surface-raised shadow-black/[0.04] hover:shadow-md'
       } ${

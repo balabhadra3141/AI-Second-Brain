@@ -246,7 +246,35 @@ export function useThoughts() {
     );
   }, []);
 
-  return { thoughts, isLoading, addThought, deleteThought, toggleTask, updateThought, retryThought };
+  const synthesizeThoughts = useCallback((id1: string, id2: string) => {
+    setThoughts((prev) => {
+      const thought1 = prev.find((t) => t.id === id1);
+      const thought2 = prev.find((t) => t.id === id2);
+      if (!thought1 || !thought2) return prev;
+
+      const combinedContent = `${thought1.content}\n\n---\n\n${thought2.content}`;
+      const optimisticId = `optimistic-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      const newThought: Thought = {
+        id: optimisticId,
+        type: 'knowledge', // fallback
+        content: combinedContent,
+        createdAt: new Date(),
+        isOptimistic: true,
+        hasFailed: false,
+      };
+
+      // Filter out the two merged thoughts and inject the new optimistic one
+      const filtered = prev.filter((t) => t.id !== id1 && t.id !== id2);
+      
+      // Process it in the background
+      processThought(optimisticId, "Synthesize these two notes into a single cohesive thought:\n\n" + combinedContent);
+      
+      return [newThought, ...filtered];
+    });
+  }, []);
+
+  return { thoughts, isLoading, addThought, deleteThought, toggleTask, updateThought, retryThought, synthesizeThoughts };
 }
 
 function classifyThought(content: string): ThoughtType {

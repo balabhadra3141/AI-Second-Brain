@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
 import SpatialGrid from '@/components/SpatialGrid';
+import SemanticMinimap from '@/components/SemanticMinimap';
 import CommandPalette from '@/components/CommandPalette';
 import DropZoneOverlay from '@/components/DropZoneOverlay';
 import Drawer, { DrawerPanel } from '@/components/Drawer';
@@ -16,7 +17,7 @@ import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 
 export default function Home() {
-  const { thoughts, isLoading, addThought, deleteThought, toggleTask, retryThought, updateThought } = useThoughts();
+  const { thoughts, isLoading, addThought, deleteThought, toggleTask, retryThought, updateThought, synthesizeThoughts } = useThoughts();
   const { filteredThoughts, scrubberValue, setScrubberValue, cutoffText } = useTimelineFilter(thoughts);
   const { isDragging } = useDropZone();
   const { settings, updateSetting, resetSettings } = useSettings();
@@ -102,6 +103,7 @@ export default function Home() {
           onToggleTask={toggleTask}
           onRetry={retryThought}
           onUpdate={updateThought}
+          onSynthesize={synthesizeThoughts}
           focusedThoughtId={focusedThoughtId}
         />
       </main>
@@ -147,6 +149,8 @@ export default function Home() {
         onResetSettings={resetSettings}
         onPurgeStream={handlePurgeStream}
       />
+
+      <SemanticMinimap thoughts={filteredThoughts} />
 
       <DropZoneOverlay isDragging={isDragging} />
     </>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Paperclip, Mic, X, Zap, MicOff } from 'lucide-react';
+import VoiceVisualizer from './VoiceVisualizer';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -87,27 +88,48 @@ export default function CommandPalette({ isOpen, onClose, onSubmit }: CommandPal
             <div className="overflow-hidden rounded-2xl border border-border-subtle bg-surface-raised shadow-2xl shadow-black/[0.18] ring-1 ring-black/[0.04]">
               {/* Textarea */}
               <div className="relative">
-                <textarea
-                  ref={textareaRef}
-                  id="command-palette-input"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Capture a thought, prompt a document, or record a task..."
-                  rows={4}
-                  className="block w-full resize-none border-none bg-transparent px-5 pt-5 pb-3 text-[15px] leading-relaxed text-foreground placeholder:text-ink-faint/70 focus:outline-none"
-                  style={{ minHeight: '110px', maxHeight: '280px' }}
-                />
+                <AnimatePresence mode="wait">
+                  {isRecording ? (
+                    <VoiceVisualizer
+                      key="voice-visualizer"
+                      onTranscriptionComplete={(text) => {
+                        setValue((prev) => (prev ? prev + ' ' + text : text));
+                        setIsRecording(false);
+                      }}
+                      onCancel={() => setIsRecording(false)}
+                    />
+                  ) : (
+                    <motion.div
+                      key="textarea-container"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <textarea
+                        ref={textareaRef}
+                        id="command-palette-input"
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Capture a thought, prompt a document, or record a task..."
+                        rows={4}
+                        className="block w-full resize-none border-none bg-transparent px-5 pt-5 pb-3 text-[15px] leading-relaxed text-foreground placeholder:text-ink-faint/70 focus:outline-none"
+                        style={{ minHeight: '110px', maxHeight: '280px' }}
+                      />
 
-                {/* Close button */}
-                <button
-                  onClick={onClose}
-                  id="palette-close-btn"
-                  className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full text-ink-faint transition-all duration-150 hover:bg-background hover:text-foreground"
-                  aria-label="Close command palette"
-                >
-                  <X size={14} strokeWidth={2} />
-                </button>
+                      {/* Close button */}
+                      <button
+                        onClick={onClose}
+                        id="palette-close-btn"
+                        className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full text-ink-faint transition-all duration-150 hover:bg-background hover:text-foreground"
+                        aria-label="Close command palette"
+                      >
+                        <X size={14} strokeWidth={2} />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Attached file badge */}
@@ -159,33 +181,17 @@ export default function CommandPalette({ isOpen, onClose, onSubmit }: CommandPal
                   </button>
 
                   {/* Mic recording */}
-                  <button
-                    onClick={toggleRecording}
-                    id="palette-mic-btn"
-                    className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 transition-colors duration-150 ${
-                      isRecording
-                        ? 'bg-red-50 text-red-500 hover:bg-red-100'
-                        : 'text-ink-faint hover:bg-background hover:text-ink-muted'
-                    }`}
-                    aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-                  >
-                    {isRecording ? (
-                      <>
-                        <motion.span
-                          animate={{ scale: [1, 1.2, 1] }}
-                          transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut' }}
-                        >
-                          <MicOff size={14} strokeWidth={1.8} />
-                        </motion.span>
-                        <span className="text-[11px] font-medium">Recording…</span>
-                      </>
-                    ) : (
-                      <>
-                        <Mic size={14} strokeWidth={1.8} />
-                        <span className="text-[11px] font-medium">Audio</span>
-                      </>
-                    )}
-                  </button>
+                  {!isRecording && (
+                    <button
+                      onClick={toggleRecording}
+                      id="palette-mic-btn"
+                      className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-ink-faint transition-colors duration-150 hover:bg-background hover:text-ink-muted"
+                      aria-label="Start recording"
+                    >
+                      <Mic size={14} strokeWidth={1.8} />
+                      <span className="text-[11px] font-medium">Audio</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Right side: shortcut hint + submit */}

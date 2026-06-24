@@ -9,6 +9,7 @@ interface TaskCardProps {
   thought: Thought;
   onToggle: () => void;
   onDelete: () => void;
+  onRetry?: () => void;
 }
 
 const priorityStyles: Record<Priority, { dot: string; label: string; pill: string }> = {
@@ -17,7 +18,7 @@ const priorityStyles: Record<Priority, { dot: string; label: string; pill: strin
   low: { dot: 'bg-priority-low', label: 'Low', pill: 'bg-slate-50 text-slate-500 border-slate-100' },
 };
 
-export default function TaskCard({ thought, onToggle, onDelete }: TaskCardProps) {
+export default function TaskCard({ thought, onToggle, onDelete, onRetry }: TaskCardProps) {
   const priority = thought.priority || 'low';
   const ps = priorityStyles[priority];
 
@@ -28,6 +29,9 @@ export default function TaskCard({ thought, onToggle, onDelete }: TaskCardProps)
       onDelete={onDelete}
       onCopy={() => navigator.clipboard.writeText(thought.content)}
       className={`bg-task-bg/60 border-task-border/70 transition-opacity duration-500 ${thought.completed ? 'opacity-50' : 'opacity-100'}`}
+      isOptimistic={thought.isOptimistic}
+      hasFailed={thought.hasFailed}
+      onRetry={onRetry}
     >
       <div className={thought.completed ? 'task-completed' : ''}>
         {/* Checkbox + content */}

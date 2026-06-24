@@ -26,6 +26,12 @@ export interface Thought {
   /** Raw captured content as entered by the user */
   content: string;
 
+  /** Flag to indicate if the thought is currently in a temporary optimistic state */
+  isOptimistic?: boolean;
+
+  /** Flag to indicate if the API request for this thought failed */
+  hasFailed?: boolean;
+
   // ── Task-specific metadata ─────────────────────────────
   /** Whether the task has been marked complete */
   completed?: boolean;

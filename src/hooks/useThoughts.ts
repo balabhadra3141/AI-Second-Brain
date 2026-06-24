@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Thought, ThoughtType, Priority } from '@/types';
 
 const MOCK_THOUGHTS: Thought[] = [
@@ -77,39 +77,155 @@ const MOCK_THOUGHTS: Thought[] = [
 
 let nextId = 100;
 
+async function simulateLemmaSDK(content: string): Promise<Thought> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (Math.random() > 0.8) {
+        reject(new Error('Network request failed'));
+      } else {
+        const type = classifyThought(content);
+        const resolvedThought: Thought = {
+          id: String(nextId++),
+          type,
+          content,
+          createdAt: new Date(),
+          ...(type === 'task' && {
+            completed: false,
+            priority: inferPriority(content),
+            deadline: inferDeadline(content),
+          }),
+          ...(type === 'idea' && {
+            nextSteps: generateNextSteps(content),
+          }),
+          ...(type === 'knowledge' && {
+            insights: 'AI has successfully analyzed this knowledge fragment for deeper insights.',
+            connections: [],
+          }),
+        };
+        resolve(resolvedThought);
+      }
+    }, 1500);
+  });
+}
+
 export function useThoughts() {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const isSyncing = useRef(false);
+
+  // Safely initialize offline queue listener on client side
+  useEffect(() => {
+    const handleOnline = () => {
+      syncOfflineQueue();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleOnline);
+      return () => window.removeEventListener('online', handleOnline);
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setThoughts(MOCK_THOUGHTS);
       setIsLoading(false);
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        syncOfflineQueue();
+      }
     }, 1500);
     return () => clearTimeout(timer);
   }, []);
 
+  const syncOfflineQueue = async () => {
+    if (isSyncing.current) return;
+    
+    const queueStr = localStorage.getItem('offline_thoughts_queue');
+    if (!queueStr) return;
+
+    let queue: { id: string, content: string }[] = [];
+    try {
+      queue = JSON.parse(queueStr);
+    } catch (e) {
+      localStorage.removeItem('offline_thoughts_queue');
+      return;
+    }
+
+    if (queue.length === 0) return;
+    isSyncing.current = true;
+
+    const remainingQueue = [...queue];
+    for (const item of queue) {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        break; // Stop syncing if we go offline
+      }
+
+      try {
+        const realThought = await simulateLemmaSDK(item.content);
+        setThoughts((prev) =>
+          prev.map((t) => (t.id === item.id ? { ...realThought, originalId: item.id } as Thought & {originalId: string} : t))
+        );
+        remainingQueue.shift();
+        localStorage.setItem('offline_thoughts_queue', JSON.stringify(remainingQueue));
+      } catch (error) {
+        setThoughts((prev) =>
+          prev.map((t) => (t.id === item.id ? { ...t, hasFailed: true, isOptimistic: false } : t))
+        );
+        remainingQueue.shift();
+        localStorage.setItem('offline_thoughts_queue', JSON.stringify(remainingQueue));
+      }
+    }
+    isSyncing.current = false;
+  };
+
+  const processThought = async (optimisticId: string, content: string) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const queueStr = localStorage.getItem('offline_thoughts_queue');
+      const queue = queueStr ? JSON.parse(queueStr) : [];
+      queue.push({ id: optimisticId, content });
+      localStorage.setItem('offline_thoughts_queue', JSON.stringify(queue));
+      return;
+    }
+
+    try {
+      const realThought = await simulateLemmaSDK(content);
+      setThoughts((prev) =>
+        prev.map((t) => {
+          if (t.id === optimisticId) {
+            return { ...realThought, originalId: optimisticId } as Thought & {originalId: string};
+          }
+          return t;
+        })
+      );
+    } catch (error) {
+      setThoughts((prev) =>
+        prev.map((t) =>
+          t.id === optimisticId ? { ...t, hasFailed: true, isOptimistic: false } : t
+        )
+      );
+    }
+  };
+
   const addThought = useCallback((content: string) => {
-    const type = classifyThought(content);
+    const optimisticId = `optimistic-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const newThought: Thought = {
-      id: String(nextId++),
-      type,
+      id: optimisticId,
+      type: 'knowledge', // fallback
       content,
       createdAt: new Date(),
-      ...(type === 'task' && {
-        completed: false,
-        priority: inferPriority(content),
-        deadline: inferDeadline(content),
-      }),
-      ...(type === 'idea' && {
-        nextSteps: generateNextSteps(content),
-      }),
-      ...(type === 'knowledge' && {
-        insights: 'AI is analyzing this knowledge fragment for deeper insights...',
-        connections: [],
-      }),
+      isOptimistic: true,
+      hasFailed: false,
     };
+    
     setThoughts((prev) => [newThought, ...prev]);
+    processThought(optimisticId, content);
+  }, []);
+
+  const retryThought = useCallback((id: string) => {
+    setThoughts((prev) => {
+      const thought = prev.find((t) => t.id === id);
+      if (!thought) return prev;
+      processThought(id, thought.content);
+      return prev.map((t) => (t.id === id ? { ...t, hasFailed: false, isOptimistic: true } : t));
+    });
   }, []);
 
   const deleteThought = useCallback((id: string) => {
@@ -130,7 +246,7 @@ export function useThoughts() {
     );
   }, []);
 
-  return { thoughts, isLoading, addThought, deleteThought, toggleTask, updateThought };
+  return { thoughts, isLoading, addThought, deleteThought, toggleTask, updateThought, retryThought };
 }
 
 function classifyThought(content: string): ThoughtType {

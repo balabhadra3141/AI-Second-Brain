@@ -6,19 +6,21 @@ import SpatialGrid from '@/components/SpatialGrid';
 import CommandPalette from '@/components/CommandPalette';
 import DropZoneOverlay from '@/components/DropZoneOverlay';
 import Drawer, { DrawerPanel } from '@/components/Drawer';
+import TimeScrubber from '@/components/TimeScrubber';
 import { useThoughts } from '@/hooks/useThoughts';
 import { useDropZone } from '@/hooks/useDropZone';
 import { useSettings } from '@/hooks/useSettings';
+import { useTimelineFilter } from '@/hooks/useTimelineFilter';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 
 export default function Home() {
-  const { thoughts, isLoading, addThought, deleteThought, toggleTask } = useThoughts();
+  const { thoughts, isLoading, addThought, deleteThought, toggleTask, retryThought } = useThoughts();
+  const { filteredThoughts, scrubberValue, setScrubberValue, cutoffText } = useTimelineFilter(thoughts);
   const { isDragging } = useDropZone();
   const { settings, updateSetting, resetSettings } = useSettings();
 
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   // Drawer state
   const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
@@ -56,14 +58,12 @@ export default function Home() {
 
   const handlePaletteSubmit = useCallback(
     (content: string, file?: File) => {
-      setIsProcessing(true);
-      // Simulate AI classification latency
-      setTimeout(() => {
-        addThought(content);
-        setIsProcessing(false);
-      }, 900);
+      // The new addThought implementation handles its own optimistic UI and API simulation
+      addThought(content);
+      // Reset timeline to present moment when adding a thought
+      setScrubberValue(100);
     },
-    [addThought]
+    [addThought, setScrubberValue]
   );
 
   const handlePurgeStream = useCallback(() => {
@@ -86,20 +86,30 @@ export default function Home() {
             Spatial Workspace
           </h2>
           <p className="mt-1 text-[22px] font-semibold tracking-tight text-foreground">
-            {thoughts.length > 0
-              ? `${thoughts.length} thought${thoughts.length !== 1 ? 's' : ''} in your stream`
+            {filteredThoughts.length > 0
+              ? `${filteredThoughts.length} thought${filteredThoughts.length !== 1 ? 's' : ''} in your stream`
               : 'Your second brain awaits'}
           </p>
         </div>
 
         <SpatialGrid
-          thoughts={thoughts}
-          isProcessing={isProcessing || isLoading}
+          thoughts={filteredThoughts}
+          isProcessing={isLoading}
           density={settings.density}
           onDelete={deleteThought}
           onToggleTask={toggleTask}
+          onRetry={retryThought}
         />
       </main>
+
+      {/* Time-Travel Scrubber */}
+      {thoughts.length > 0 && (
+        <TimeScrubber
+          value={scrubberValue}
+          onChange={setScrubberValue}
+          label={cutoffText}
+        />
+      )}
 
       {/* Floating action button (mobile) */}
       <motion.button

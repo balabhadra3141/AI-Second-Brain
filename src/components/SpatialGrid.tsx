@@ -13,6 +13,7 @@ interface SpatialGridProps {
   density?: 'comfortable' | 'compact';
   onDelete: (id: string) => void;
   onToggleTask: (id: string) => void;
+  onRetry?: (id: string) => void;
 }
 
 const emptyVariants: Variants = {
@@ -26,6 +27,7 @@ export default function SpatialGrid({
   density = 'comfortable',
   onDelete,
   onToggleTask,
+  onRetry,
 }: SpatialGridProps) {
   // Empty state
   if (!isProcessing && thoughts.length === 0) {
@@ -55,7 +57,7 @@ export default function SpatialGrid({
     <div className="py-6">
       {/* Masonry columns layout */}
       <div className={`columns-1 sm:columns-2 lg:columns-3 [column-fill:_balance] ${density === 'compact' ? 'gap-2' : 'gap-4'}`}>
-        {/* Processing skeleton — injected at top of grid */}
+        {/* Processing skeleton — removed from top if using optimistic UI, but let's keep it if isProcessing is true globally */}
         {isProcessing && (
           <div className={`${density === 'compact' ? 'mb-2' : 'mb-4'} break-inside-avoid`}>
             <SkeletonCard variant="default" />
@@ -64,6 +66,7 @@ export default function SpatialGrid({
 
         <AnimatePresence mode="popLayout">
           {thoughts.map((thought, index) => {
+            const originalId = (thought as any).originalId || thought.id;
             const cardContent = (() => {
               switch (thought.type) {
                 case 'task':
@@ -73,6 +76,7 @@ export default function SpatialGrid({
                       thought={thought}
                       onToggle={() => onToggleTask(thought.id)}
                       onDelete={() => onDelete(thought.id)}
+                      onRetry={() => onRetry?.(thought.id)}
                     />
                   );
                 case 'knowledge':
@@ -81,6 +85,7 @@ export default function SpatialGrid({
                       key={thought.id}
                       thought={thought}
                       onDelete={() => onDelete(thought.id)}
+                      onRetry={() => onRetry?.(thought.id)}
                     />
                   );
                 case 'idea':
@@ -89,6 +94,7 @@ export default function SpatialGrid({
                       key={thought.id}
                       thought={thought}
                       onDelete={() => onDelete(thought.id)}
+                      onRetry={() => onRetry?.(thought.id)}
                     />
                   );
                 default:
@@ -101,15 +107,16 @@ export default function SpatialGrid({
             return (
               <motion.div
                 key={thought.id}
+                layoutId={originalId}
                 layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.18 } }}
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.18 } }}
                 transition={{
                   type: 'spring',
-                  stiffness: 260,
-                  damping: 20,
-                  delay: index < 6 ? index * 0.04 : 0,
+                  stiffness: 300,
+                  damping: 25,
+                  delay: index < 6 && !thought.isOptimistic ? index * 0.04 : 0,
                 }}
                 className={`${density === 'compact' ? 'mb-2' : 'mb-4'} break-inside-avoid`}
               >

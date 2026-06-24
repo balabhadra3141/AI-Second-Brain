@@ -9,9 +9,10 @@ import { Thought } from '@/types';
 interface IdeaCardProps {
   thought: Thought;
   onDelete: () => void;
+  onRetry?: () => void;
 }
 
-export default function IdeaCard({ thought, onDelete }: IdeaCardProps) {
+export default function IdeaCard({ thought, onDelete, onRetry }: IdeaCardProps) {
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
 
   const toggleStep = (index: number) => {
@@ -33,6 +34,9 @@ export default function IdeaCard({ thought, onDelete }: IdeaCardProps) {
       onDelete={onDelete}
       onCopy={() => navigator.clipboard.writeText(thought.content)}
       className="bg-idea-bg border-idea-border/70"
+      isOptimistic={thought.isOptimistic}
+      hasFailed={thought.hasFailed}
+      onRetry={onRetry}
     >
       {/* Idea content */}
       <div className="flex gap-3">

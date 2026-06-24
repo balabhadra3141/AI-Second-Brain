@@ -9,9 +9,10 @@ import { Thought } from '@/types';
 interface KnowledgeCardProps {
   thought: Thought;
   onDelete: () => void;
+  onRetry?: () => void;
 }
 
-export default function KnowledgeCard({ thought, onDelete }: KnowledgeCardProps) {
+export default function KnowledgeCard({ thought, onDelete, onRetry }: KnowledgeCardProps) {
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [connectionsOpen, setConnectionsOpen] = useState(false);
 
@@ -22,6 +23,9 @@ export default function KnowledgeCard({ thought, onDelete }: KnowledgeCardProps)
       onDelete={onDelete}
       onCopy={() => navigator.clipboard.writeText(thought.content)}
       className="bg-knowledge-bg border-knowledge-border/80"
+      isOptimistic={thought.isOptimistic}
+      hasFailed={thought.hasFailed}
+      onRetry={onRetry}
     >
       {/* Editorial quote style with thick left accent */}
       <div className="border-l-[3px] border-knowledge-accent/60 pl-4">

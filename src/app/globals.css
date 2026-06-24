@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Newsreader:ital,wght@0,400;0,500;1,400&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #FAFAFA;
+  --foreground: #1A1A1A;
+  --surface-raised: #FFFFFF;
+  --ink-muted: #6B7280;
+  --ink-faint: #9CA3AF;
+  --border-subtle: #E5E7EB;
+  --border-hover: #D1D5DB;
+  --accent: #2563EB;
+  --accent-soft: #DBEAFE;
+  --status-connected: #22C55E;
+  --status-processing: #F59E0B;
+  --task-bg: #F0FDF4;
+  --task-border: #BBF7D0;
+  --knowledge-bg: #F8FAFC;
+  --knowledge-border: #E2E8F0;
+  --knowledge-accent: #94A3B8;
+  --idea-bg: #FFFBEB;
+  --idea-border: #FDE68A;
+  --priority-high: #EF4444;
+  --priority-medium: #F59E0B;
+  --priority-low: #6B7280;
+  --skeleton-base: #F3F4F6;
+  --skeleton-shine: #E5E7EB;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface-raised: var(--surface-raised);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-hover: var(--border-hover);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-status-connected: var(--status-connected);
+  --color-status-processing: var(--status-processing);
+  --color-task-bg: var(--task-bg);
+  --color-task-border: var(--task-border);
+  --color-knowledge-bg: var(--knowledge-bg);
+  --color-knowledge-border: var(--knowledge-border);
+  --color-knowledge-accent: var(--knowledge-accent);
+  --color-idea-bg: var(--idea-bg);
+  --color-idea-border: var(--idea-border);
+  --color-priority-high: var(--priority-high);
+  --color-priority-medium: var(--priority-medium);
+  --color-priority-low: var(--priority-low);
+  --color-skeleton-base: var(--skeleton-base);
+  --color-skeleton-shine: var(--skeleton-shine);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Newsreader', 'Georgia', serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+}
+
+/* Skeleton shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-shine) 50%,
+    var(--skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* Pulse dot animation for status indicator */
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.3);
+  }
+}
+
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Task completion strikethrough */
+.task-completed .task-text {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-faint);
+  text-decoration-thickness: 1.5px;
+}
+
+/* Textarea auto-resize */
+textarea {
+  field-sizing: content;
+}
+
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-soft);
+  color: var(--foreground);
+}

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Newsreader:ital,wght@0,400;0,500;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Newsreader:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -62,6 +62,20 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Typography Overrides */
+.font-modern body {
+  font-family: var(--font-sans);
+}
+
+.font-editorial body {
+  font-family: var(--font-serif);
+}
+
+.font-technical body {
+  font-family: 'JetBrains Mono', monospace;
 }
 
 /* Custom scrollbar */
@@ -151,4 +165,45 @@ textarea {
 .content-fade {
   mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
   -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+}
+
+/* Theme Overrides */
+.theme-onyx {
+  --background: #09090B;
+  --foreground: #FAFAFA;
+  --surface-raised: #18181B;
+  --ink-muted: #A1A1AA;
+  --ink-faint: #52525B;
+  --border-subtle: #27272A;
+  --border-hover: #3F3F46;
+  --skeleton-base: #18181B;
+  --skeleton-shine: #27272A;
+  
+  --task-bg: #064E3B;
+  --task-border: #065F46;
+  --knowledge-bg: #0F172A;
+  --knowledge-border: #1E293B;
+  --knowledge-accent: #334155;
+  --idea-bg: #451A03;
+  --idea-border: #78350F;
+}
+
+.theme-paper {
+  --background: #F4EFE6;
+  --foreground: #2C2825;
+  --surface-raised: #FCFAF5;
+  --ink-muted: #7A7267;
+  --ink-faint: #B0A696;
+  --border-subtle: #E6DFD3;
+  --border-hover: #D1C7B5;
+  --skeleton-base: #EAE3D5;
+  --skeleton-shine: #F4EFE6;
+  
+  --task-bg: #EEF2E6;
+  --task-border: #D5E0C3;
+  --knowledge-bg: #EAEFF2;
+  --knowledge-border: #C8D7E0;
+  --knowledge-accent: #8E9EA8;
+  --idea-bg: #FDF3E1;
+  --idea-border: #F0D5A3;
 }

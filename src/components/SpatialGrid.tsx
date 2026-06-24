@@ -1,6 +1,6 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, Variants } from 'framer-motion';
 import { Thought } from '@/types';
 import TaskCard from './cards/TaskCard';
 import KnowledgeCard from './cards/KnowledgeCard';
@@ -10,11 +10,12 @@ import SkeletonCard from './cards/SkeletonCard';
 interface SpatialGridProps {
   thoughts: Thought[];
   isProcessing: boolean;
+  density?: 'comfortable' | 'compact';
   onDelete: (id: string) => void;
   onToggleTask: (id: string) => void;
 }
 
-const emptyVariants = {
+const emptyVariants: Variants = {
   hidden: { opacity: 0, y: 8 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
@@ -22,6 +23,7 @@ const emptyVariants = {
 export default function SpatialGrid({
   thoughts,
   isProcessing,
+  density = 'comfortable',
   onDelete,
   onToggleTask,
 }: SpatialGridProps) {
@@ -52,10 +54,10 @@ export default function SpatialGrid({
   return (
     <div className="py-6">
       {/* Masonry columns layout */}
-      <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 [column-fill:_balance]">
+      <div className={`columns-1 sm:columns-2 lg:columns-3 [column-fill:_balance] ${density === 'compact' ? 'gap-2' : 'gap-4'}`}>
         {/* Processing skeleton — injected at top of grid */}
         {isProcessing && (
-          <div className="mb-4 break-inside-avoid">
+          <div className={`${density === 'compact' ? 'mb-2' : 'mb-4'} break-inside-avoid`}>
             <SkeletonCard variant="default" />
           </div>
         )}
@@ -109,7 +111,7 @@ export default function SpatialGrid({
                   damping: 20,
                   delay: index < 6 ? index * 0.04 : 0,
                 }}
-                className="mb-4 break-inside-avoid"
+                className={`${density === 'compact' ? 'mb-2' : 'mb-4'} break-inside-avoid`}
               >
                 {cardContent}
               </motion.div>

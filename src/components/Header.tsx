@@ -3,13 +3,15 @@
 import { useState } from 'react';
 import { User, Command } from 'lucide-react';
 import ProfileMenu from './ProfileMenu';
+import { DrawerPanel } from './Drawer';
 
 interface HeaderProps {
   status: 'connected' | 'processing' | 'disconnected';
   onOpenPalette?: () => void;
+  onOpenDrawer: (panel: DrawerPanel) => void;
 }
 
-export default function Header({ status, onOpenPalette }: HeaderProps) {
+export default function Header({ status, onOpenPalette, onOpenDrawer }: HeaderProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const statusConfig = {
@@ -96,6 +98,7 @@ export default function Header({ status, onOpenPalette }: HeaderProps) {
               <ProfileMenu
                 isOpen={isProfileOpen}
                 onClose={() => setIsProfileOpen(false)}
+                onOpenDrawer={onOpenDrawer}
               />
             </div>
           </div>

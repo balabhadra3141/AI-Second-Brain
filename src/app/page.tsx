@@ -5,17 +5,23 @@ import Header from '@/components/Header';
 import SpatialGrid from '@/components/SpatialGrid';
 import CommandPalette from '@/components/CommandPalette';
 import DropZoneOverlay from '@/components/DropZoneOverlay';
+import Drawer, { DrawerPanel } from '@/components/Drawer';
 import { useThoughts } from '@/hooks/useThoughts';
 import { useDropZone } from '@/hooks/useDropZone';
+import { useSettings } from '@/hooks/useSettings';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 
 export default function Home() {
   const { thoughts, isLoading, addThought, deleteThought, toggleTask } = useThoughts();
   const { isDragging } = useDropZone();
+  const { settings, updateSetting, resetSettings } = useSettings();
 
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Drawer state
+  const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
 
   const status = isLoading ? 'processing' : 'connected';
 
@@ -33,6 +39,21 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Apply global appearance settings to DOM
+  useEffect(() => {
+    const root = document.documentElement;
+
+    // Apply Theme
+    root.classList.remove('theme-onyx', 'theme-paper');
+    if (settings.theme !== 'system') {
+      root.classList.add(`theme-${settings.theme}`);
+    }
+
+    // Apply Typography
+    root.classList.remove('font-modern', 'font-editorial', 'font-technical');
+    root.classList.add(`font-${settings.typography}`);
+  }, [settings.theme, settings.typography]);
+
   const handlePaletteSubmit = useCallback(
     (content: string, file?: File) => {
       setIsProcessing(true);
@@ -45,9 +66,18 @@ export default function Home() {
     [addThought]
   );
 
+  const handlePurgeStream = useCallback(() => {
+    // In a real app, this would delete all items from local state/DB
+    console.log('Purging stream...');
+  }, []);
+
   return (
     <>
-      <Header status={status} onOpenPalette={() => setIsPaletteOpen(true)} />
+      <Header
+        status={status}
+        onOpenPalette={() => setIsPaletteOpen(true)}
+        onOpenDrawer={(panel) => setDrawerPanel(panel)}
+      />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-6">
         {/* Page title */}
@@ -65,6 +95,7 @@ export default function Home() {
         <SpatialGrid
           thoughts={thoughts}
           isProcessing={isProcessing || isLoading}
+          density={settings.density}
           onDelete={deleteThought}
           onToggleTask={toggleTask}
         />
@@ -90,6 +121,17 @@ export default function Home() {
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}
         onSubmit={handlePaletteSubmit}
+      />
+
+      {/* Slide-over Drawer */}
+      <Drawer
+        isOpen={drawerPanel !== null}
+        panel={drawerPanel || 'settings'}
+        onClose={() => setDrawerPanel(null)}
+        settings={settings}
+        onUpdateSetting={updateSetting}
+        onResetSettings={resetSettings}
+        onPurgeStream={handlePurgeStream}
       />
 
       <DropZoneOverlay isDragging={isDragging} />

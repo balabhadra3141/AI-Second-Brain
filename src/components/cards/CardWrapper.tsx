@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
-import { MoreHorizontal, Trash2, Copy, Edit2 } from 'lucide-react';
+import { MoreHorizontal, Trash2, Copy, Edit2, RotateCcw } from 'lucide-react';
 import { ThoughtType } from '@/types';
 
 interface CardWrapperProps {
@@ -121,19 +121,21 @@ export default function CardWrapper({
     <motion.article
       layoutId={layoutId}
       data-thought-id={id}
-      drag
+      drag={!isOptimistic}
       dragSnapToOrigin={true}
       onDragEnd={handleDragEnd}
       whileDrag={{ 
         position: 'relative', 
         zIndex: 9999, 
-        scale: 1.05, 
+        scale: 1.04, 
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
       }}
-      className={`group relative transform-gpu rounded-xl border p-5 transition-all duration-300 ${
-        isOptimistic ? 'opacity-70 pointer-events-none overflow-hidden before:absolute before:inset-0 before:skeleton-shimmer before:opacity-40 before:z-0 ring-4 ring-zinc-900/10 dark:ring-white/10 animate-pulse' : ''
+      className={`group relative transform-gpu rounded-xl p-5 transition-all duration-300 ${
+        isOptimistic 
+          ? 'overflow-hidden bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md border-2 border-dashed border-zinc-300 dark:border-zinc-700 animate-pulse' 
+          : 'border bg-surface-raised shadow-black/[0.04] hover:shadow-md'
       } ${
-        hasFailed ? 'bg-red-50/50 border-red-200/60 shadow-sm' : 'bg-surface-raised shadow-black/[0.04] hover:shadow-md'
+        hasFailed ? 'bg-red-50/50 border-red-200/60 shadow-sm' : ''
       } ${
         isFocused ? 'ring-2 ring-zinc-900 dark:ring-white ring-offset-2 ring-offset-background -translate-y-1 shadow-lg' : ''
       } ${className}`}
@@ -148,15 +150,6 @@ export default function CardWrapper({
           </span>
           <span className={`text-[11px] font-medium ${hasFailed ? 'text-red-500/70' : 'text-ink-faint'}`}>
             {formatTime(timestamp)}
-            {isOptimistic && (
-              <span className="flex items-center gap-1 ml-1 text-blue-500 font-medium">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
-                </span>
-                Synthesizing...
-              </span>
-            )}
           </span>
         </div>
 
@@ -227,6 +220,38 @@ export default function CardWrapper({
           )}
         </div>
       </div>
+
+      {/* Ghost Card Overlay for Optimistic State */}
+      {isOptimistic && (
+        <div className="absolute inset-0 z-[70] flex flex-col items-center justify-center p-6 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-[2px] rounded-xl">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">
+            Synthesizing...
+          </span>
+          <span className="text-sm text-zinc-400 italic text-center line-clamp-2 mb-4">
+            Merging thought context...
+          </span>
+          
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.dispatchEvent(new CustomEvent('undoSynthesis', { detail: { optimisticId: id } }));
+            }}
+            className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 hover:scale-105 transition-transform rounded-full px-4 py-1.5 text-xs font-medium shadow-lg flex items-center gap-2"
+          >
+            <RotateCcw size={14} />
+            Undo
+          </button>
+
+          {/* The Linear Countdown Bar */}
+          <motion.div
+            initial={{ width: '100%' }}
+            animate={{ width: '0%' }}
+            transition={{ duration: 4, ease: 'linear' }}
+            className="absolute bottom-0 left-0 h-1 bg-zinc-900 dark:bg-white"
+          />
+        </div>
+      )}
 
       {/* Card content */}
       <div className="relative z-10">

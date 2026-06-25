@@ -1,0 +1,9 @@
+{
+  "name": "streambrain-classifier",
+  "description": "Classifies raw user thoughts into structured JSON (task, idea, or knowledge) with tags, priority, deadline, and insights.",
+  "instruction": { "$file": "instruction.md" },
+  "agent_runtime": { "profile_id": "system:lemma", "model_name": "openai/gpt-4o-mini" },
+  "toolsets": [],
+  "visibility": "POD",
+  "permissions": { "grants": [] }
+}

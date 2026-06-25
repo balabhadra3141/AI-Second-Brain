@@ -1,0 +1,9 @@
+{
+  "name": "streambrain-connector",
+  "description": "Identifies the 3 most semantically related cards to an active card for drawing visual knowledge graph connections.",
+  "instruction": { "$file": "instruction.md" },
+  "agent_runtime": { "profile_id": "system:lemma", "model_name": "openai/gpt-4o-mini" },
+  "toolsets": [],
+  "visibility": "POD",
+  "permissions": { "grants": [] }
+}

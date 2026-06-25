@@ -112,7 +112,7 @@ export default function CommandPalette({ isOpen, onClose, onSubmit }: CommandPal
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Capture a thought, prompt a document, or record a task..."
+                        placeholder="Capture a thought, or type ? to query your stream with Lemma..."
                         rows={4}
                         className="block w-full resize-none border-none bg-transparent px-5 pt-5 pb-3 text-[15px] leading-relaxed text-foreground placeholder:text-ink-faint/70 focus:outline-none"
                         style={{ minHeight: '110px', maxHeight: '280px' }}

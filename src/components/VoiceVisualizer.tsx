@@ -15,6 +15,9 @@ export default function VoiceVisualizer({ onTranscriptionComplete, onCancel }: V
   const animationRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef<string>('');
+  const hasTranscribedRef = useRef<boolean>(false);
   
   // Total bars for the visualizer
   const BAR_COUNT = 24;
@@ -40,6 +43,29 @@ export default function VoiceVisualizer({ onTranscriptionComplete, onCancel }: V
 
         const bufferLength = analyser.frequencyBinCount;
         dataArray = new Uint8Array(bufferLength);
+
+        // Initialize Speech Recognition
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (SpeechRecognition) {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = false;
+          
+          recognition.onresult = (event: any) => {
+            let finalTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+              if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+              }
+            }
+            transcriptRef.current += finalTranscript + ' ';
+          };
+          
+          recognitionRef.current = recognition;
+          recognition.start();
+        } else {
+          console.warn("Speech Recognition not supported in this browser.");
+        }
 
         const updateVisualizer = () => {
           if (status !== 'listening') return;
@@ -81,6 +107,9 @@ export default function VoiceVisualizer({ onTranscriptionComplete, onCancel }: V
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close();
       }
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+      }
     };
   }, [onCancel, status]);
 
@@ -102,10 +131,32 @@ export default function VoiceVisualizer({ onTranscriptionComplete, onCancel }: V
       }
     }
 
-    // Simulate network delay for transcription
-    setTimeout(() => {
-      onTranscriptionComplete("This is a mock transcription of the audio. Synthesizing complex concepts...");
-    }, 2000);
+    if (recognitionRef.current) {
+      recognitionRef.current.onend = () => {
+        if (!hasTranscribedRef.current) {
+          hasTranscribedRef.current = true;
+          onTranscriptionComplete(transcriptRef.current.trim() || 'No audio captured.');
+        }
+      };
+      
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.error('Error stopping recognition:', e);
+      }
+      
+      // Fallback in case onend fails to fire
+      setTimeout(() => {
+        if (!hasTranscribedRef.current) {
+          hasTranscribedRef.current = true;
+          onTranscriptionComplete(transcriptRef.current.trim() || 'No audio captured.');
+        }
+      }, 1500);
+    } else {
+      setTimeout(() => {
+        onTranscriptionComplete("Speech recognition unavailable in this browser.");
+      }, 1000);
+    }
   };
 
   return (
@@ -122,10 +173,10 @@ export default function VoiceVisualizer({ onTranscriptionComplete, onCancel }: V
           <div
             key={i}
             ref={(el) => { barsRef.current[i] = el; }}
-            className="w-1.5 rounded-full bg-gradient-to-t from-zinc-400 to-zinc-900 dark:from-zinc-600 dark:to-white"
+            className="w-1.5 rounded-full bg-zinc-950 dark:bg-white"
             style={{ 
               height: '4px',
-              transition: status === 'listening' ? 'height 75ms ease' : 'height 300ms ease'
+              transition: status === 'listening' ? 'height 75ms ease-out' : 'height 300ms ease-out'
             }}
           />
         ))}

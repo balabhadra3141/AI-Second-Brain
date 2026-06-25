@@ -8,12 +8,12 @@ import CommandPalette from '@/components/CommandPalette';
 import DropZoneOverlay from '@/components/DropZoneOverlay';
 import Drawer, { DrawerPanel } from '@/components/Drawer';
 import TimeScrubber from '@/components/TimeScrubber';
-import { useThoughts } from '@/hooks/useThoughts';
+import { useThoughts, queryViaLemma } from '@/hooks/useThoughts';
 import { useDropZone } from '@/hooks/useDropZone';
 import { useSettings } from '@/hooks/useSettings';
 import { useTimelineFilter } from '@/hooks/useTimelineFilter';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Plus } from 'lucide-react';
 
 export default function Home() {
@@ -27,6 +27,10 @@ export default function Home() {
 
   // Drawer state
   const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
+
+  // HACKATHON REQUIREMENT: Lemma Q&A answer state — shown when user asks a question
+  const [lemmaAnswer, setLemmaAnswer] = useState<string | null>(null);
+  const [isQuerying, setIsQuerying] = useState(false);
 
   const status = isLoading ? 'processing' : 'connected';
 
@@ -60,13 +64,35 @@ export default function Home() {
   }, [settings.theme, settings.typography]);
 
   const handlePaletteSubmit = useCallback(
-    (content: string, file?: File) => {
-      // The new addThought implementation handles its own optimistic UI and API simulation
-      addThought(content);
-      // Reset timeline to present moment when adding a thought
-      setScrubberValue(100);
+    async (content: string, file?: File) => {
+      const isQuestion = content.trimStart().startsWith('?');
+
+      if (isQuestion) {
+        // HACKATHON REQUIREMENT: Utilizing Lemma SDK for natural-language Q&A
+        // against the spatial grid. Lines starting with '?' are routed to the
+        // Lemma query engine instead of being saved as thoughts.
+        const question = content.trimStart().slice(1).trim();
+        setIsQuerying(true);
+        setLemmaAnswer(null);
+        try {
+          const answer = await queryViaLemma(
+            question,
+            thoughts.map((t) => ({ id: t.id, type: t.type, content: t.content, createdAt: t.createdAt }))
+          );
+          setLemmaAnswer(answer);
+        } catch (err) {
+          setLemmaAnswer('Lemma could not process your question. Please check that the local stack is running.');
+        } finally {
+          setIsQuerying(false);
+        }
+      } else {
+        // Raw thought → Lemma classify pipeline
+        addThought(content);
+        setScrubberValue(100);
+        setLemmaAnswer(null);
+      }
     },
-    [addThought, setScrubberValue]
+    [addThought, setScrubberValue, thoughts]
   );
 
   const handlePurgeStream = useCallback(() => {
@@ -94,6 +120,28 @@ export default function Home() {
               : 'Your second brain awaits'}
           </p>
         </div>
+
+        {/* HACKATHON REQUIREMENT: Lemma Q&A answer panel — shown when user types a ? query */}
+        <AnimatePresence>
+          {(lemmaAnswer || isQuerying) && (
+            <motion.div
+              key="lemma-answer"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="mb-6 rounded-xl border border-border-subtle bg-surface-raised px-5 py-4"
+            >
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-ink-faint">
+                Lemma · Answer
+              </p>
+              {isQuerying ? (
+                <p className="text-[14px] text-ink-muted animate-pulse">Querying your stream via Lemma…</p>
+              ) : (
+                <p className="text-[14px] leading-relaxed text-foreground">{lemmaAnswer}</p>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <SpatialGrid
           thoughts={filteredThoughts}

@@ -2,7 +2,7 @@
   "name": "streambrain-synthesizer",
   "description": "Fuses two thought cards merged by the user into a single cohesive, upgraded thought with emergent insights.",
   "instruction": { "$file": "instruction.md" },
-  "agent_runtime": { "profile_id": "system:lemma", "model_name": "openai/gpt-4o-mini" },
+  "agent_runtime": { "profile_id": "system:lemma", "model_name": "deepseek-v4-flash" },
   "toolsets": [],
   "visibility": "POD",
   "permissions": { "grants": [] }

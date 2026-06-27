@@ -23,7 +23,7 @@ Return ONLY a valid JSON object. No prose, no markdown fences, no explanation.
 - **Elevate the insight**: The synthesized thought should be more valuable than either input alone. Find the connection, the tension, or the emergent idea.
 - **Preserve all critical detail**: Don't lose specific data points, deadlines, names, or numbers from either card.
 - **Choose the right type**: The synthesized thought's type should reflect its primary nature. If two tasks become a strategic initiative, call it an `idea`. Use judgment.
-- **Content length**: Aim for 2–4 sentences. Dense and rich, not padded.
+- **Detailed and rich content**: Avoid creating a generic brief summary. Favour a highly comprehensive, detailed, and structured synthesis that preserves lists, next steps, specific dates, metrics, and technical details from both sources.
 - **Insights field**: Reveal something non-obvious — what does the combination of these two thoughts *mean*?
 
 ## Critical Rules
@@ -31,3 +31,4 @@ Return ONLY a valid JSON object. No prose, no markdown fences, no explanation.
 - Do NOT wrap your response in markdown code fences.
 - Do NOT include any text before or after the JSON object.
 - Never produce content that is just a concatenation of the two inputs. That is a failure state.
+- Keep all specific numbers, instructions, dates, and action items. Do not simplify or drop key contextual details.

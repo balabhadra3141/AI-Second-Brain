@@ -1,0 +1,9 @@
+{
+  "name": "streambrain-insight",
+  "description": "Proactively analyzes the user's grid of thoughts and tasks to find duplicates, contradictions, and suggestions.",
+  "instruction": { "$file": "instruction.md" },
+  "agent_runtime": { "profile_id": "system:lemma", "model_name": "deepseek-v4-flash" },
+  "toolsets": [],
+  "visibility": "POD",
+  "permissions": { "grants": [] }
+}

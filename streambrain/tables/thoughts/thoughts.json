@@ -1,0 +1,20 @@
+{
+  "name": "thoughts",
+  "primary_key_column": "id",
+  "enable_rls": false,
+  "visibility": "POD",
+  "columns": [
+    { "name": "title", "type": "TEXT", "required": true, "max_length": 240 },
+    { "name": "content", "type": "TEXT", "required": true },
+    { "name": "type", "type": "ENUM", "required": true, "options": ["task", "idea", "knowledge"], "default": "knowledge" },
+    { "name": "x", "type": "INTEGER", "required": false },
+    { "name": "y", "type": "INTEGER", "required": false },
+    { "name": "priority", "type": "ENUM", "required": false, "options": ["low", "medium", "high"], "default": "low" },
+    { "name": "deadline", "type": "TEXT", "required": false },
+    { "name": "insights", "type": "TEXT", "required": false },
+    { "name": "next_steps", "type": "JSON", "required": false },
+    { "name": "tags", "type": "JSON", "required": false },
+    { "name": "completed", "type": "BOOLEAN", "required": false, "default": false }
+  ],
+  "config": {}
+}

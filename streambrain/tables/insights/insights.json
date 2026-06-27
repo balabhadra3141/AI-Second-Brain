@@ -1,0 +1,13 @@
+{
+  "name": "insights",
+  "primary_key_column": "id",
+  "enable_rls": false,
+  "visibility": "POD",
+  "columns": [
+    { "name": "title", "type": "TEXT", "required": true, "max_length": 240 },
+    { "name": "content", "type": "TEXT", "required": true },
+    { "name": "type", "type": "TEXT", "required": true, "max_length": 60 },
+    { "name": "source_thought_id", "type": "UUID", "required": false }
+  ],
+  "config": {}
+}

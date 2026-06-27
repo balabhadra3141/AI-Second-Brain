@@ -14,15 +14,45 @@ import { useSettings } from '@/hooks/useSettings';
 import { useTimelineFilter } from '@/hooks/useTimelineFilter';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus } from 'lucide-react';
+import { Plus, PanelLeftClose, PanelLeftOpen, Sparkles, ChevronRight, ChevronLeft } from 'lucide-react';
+import KnowledgeGraph from '@/components/KnowledgeGraph';
+import SecondBrainChat from '@/components/SecondBrainChat';
 
 export default function Home() {
-  const { thoughts, isLoading, addThought, deleteThought, toggleTask, retryThought, updateThought, synthesizeThoughts } = useThoughts();
+  const { 
+    thoughts, 
+    isLoading, 
+    tasks, 
+    insights, 
+    relationships,
+    addThought, 
+    deleteThought, 
+    toggleTask, 
+    retryThought, 
+    updateThought, 
+    synthesizeThoughts, 
+    runProactiveInsights, 
+    executeAction,
+    createRelationship,
+    deleteRelationship,
+    updateCoordinates,
+    loadThoughts,
+    addThoughtDirectly
+  } = useThoughts();
   const { filteredThoughts, scrubberValue, setScrubberValue, cutoffText } = useTimelineFilter(thoughts);
-  const { isDragging } = useDropZone();
+  const [draggedFile, setDraggedFile] = useState<File | null>(null);
+  const { isDragging } = useDropZone((files) => {
+    if (files.length > 0) {
+      setDraggedFile(files[0]);
+      setIsPaletteOpen(true);
+    }
+  });
   const { settings, updateSetting, resetSettings } = useSettings();
 
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [mainView, setMainView] = useState<'grid' | 'graph' | 'chat'>('grid');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   const { focusedThoughtId } = useSpatialNavigation(isPaletteOpen);
 
   // Drawer state
@@ -65,6 +95,34 @@ export default function Home() {
 
   const handlePaletteSubmit = useCallback(
     async (content: string, file?: File) => {
+      if (file) {
+        setIsUploadingPdf(true);
+        setLemmaAnswer(null);
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('content', content);
+
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+          if (data.ok) {
+            await loadThoughts();
+            setScrubberValue(100);
+          } else {
+            console.error('File upload failed', data.error);
+          }
+        } catch (err) {
+          console.error('Error uploading file', err);
+        } finally {
+          setIsUploadingPdf(false);
+          setDraggedFile(null);
+        }
+        return;
+      }
+
       const isQuestion = content.trimStart().startsWith('?');
 
       if (isQuestion) {
@@ -92,7 +150,7 @@ export default function Home() {
         setLemmaAnswer(null);
       }
     },
-    [addThought, setScrubberValue, thoughts]
+    [addThought, setScrubberValue, thoughts, loadThoughts]
   );
 
   const handlePurgeStream = useCallback(() => {
@@ -137,23 +195,200 @@ export default function Home() {
               {isQuerying ? (
                 <p className="text-[14px] text-ink-muted animate-pulse">Querying your stream via Lemma…</p>
               ) : (
-                <p className="text-[14px] leading-relaxed text-foreground">{lemmaAnswer}</p>
+                <>
+                  <p className="text-[14px] leading-relaxed text-foreground">{lemmaAnswer}</p>
+                  <div className="mt-4 flex flex-wrap gap-2 items-center">
+                    <span className="text-[11px] text-ink-faint font-semibold uppercase">Action Actions:</span>
+                    <button
+                      onClick={() => executeAction('todo', lemmaAnswer || '')}
+                      className="rounded-full border border-border-subtle bg-background hover:bg-surface-card text-[11px] px-3 py-1 font-medium transition-colors"
+                    >
+                      Generate Tasks
+                    </button>
+                    <button
+                      onClick={() => executeAction('study_plan', lemmaAnswer || '')}
+                      className="rounded-full border border-border-subtle bg-background hover:bg-surface-card text-[11px] px-3 py-1 font-medium transition-colors"
+                    >
+                      Create Study Plan
+                    </button>
+                    <button
+                      onClick={() => executeAction('flashcards', lemmaAnswer || '')}
+                      className="rounded-full border border-border-subtle bg-background hover:bg-surface-card text-[11px] px-3 py-1 font-medium transition-colors"
+                    >
+                      Generate Flashcards
+                    </button>
+                  </div>
+                </>
               )}
             </motion.div>
           )}
         </AnimatePresence>
 
-        <SpatialGrid
-          thoughts={filteredThoughts}
-          isProcessing={isLoading}
-          density={settings.density}
-          onDelete={deleteThought}
-          onToggleTask={toggleTask}
-          onRetry={retryThought}
-          onUpdate={updateThought}
-          onSynthesize={synthesizeThoughts}
-          focusedThoughtId={focusedThoughtId}
-        />
+        <div className="flex gap-5 items-start">
+
+          {/* ── LEFT SIDEBAR (collapsible) ───────────────────── */}
+          <motion.div
+            animate={{ width: sidebarOpen ? 300 : 0, opacity: sidebarOpen ? 1 : 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="flex-shrink-0 overflow-hidden"
+            style={{ minWidth: 0 }}
+          >
+            <div className="w-[300px] space-y-4">
+              {/* Insights panel */}
+              <div className="rounded-2xl border border-border-subtle bg-surface-raised shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-border-subtle">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={13} strokeWidth={1.8} className="text-indigo-500" />
+                    <h3 className="text-[13px] font-bold text-foreground">AI Insights</h3>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={runProactiveInsights}
+                      className="rounded-lg bg-zinc-100 text-ink-muted text-[11px] font-semibold px-2.5 py-1 hover:bg-zinc-200 hover:text-foreground transition-colors"
+                    >
+                      Refresh
+                    </button>
+                    <button
+                      onClick={() => setSidebarOpen(false)}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-ink-faint hover:bg-zinc-100 hover:text-foreground transition-all cursor-pointer"
+                      title="Collapse sidebar"
+                    >
+                      <ChevronLeft size={14} strokeWidth={2} />
+                    </button>
+                  </div>
+                </div>
+                <div className="px-4 py-3 space-y-2.5 max-h-[320px] overflow-y-auto">
+                  {insights.length === 0 ? (
+                    <div className="flex flex-col items-center py-6 text-center">
+                      <div className="mb-2 h-8 w-8 rounded-xl bg-zinc-100 flex items-center justify-center">
+                        <Sparkles size={14} className="text-zinc-400" />
+                      </div>
+                      <p className="text-[12px] font-medium text-ink-muted">No insights yet</p>
+                      <p className="text-[11px] text-ink-faint mt-0.5">Capture more thoughts first</p>
+                    </div>
+                  ) : (
+                    insights.map((ins, idx) => {
+                      const dot = ins.type === 'contradiction' ? 'bg-red-400' : ins.type === 'pattern' ? 'bg-blue-400' : ins.type === 'suggestion' ? 'bg-violet-400' : 'bg-emerald-400';
+                      const bg = ins.type === 'contradiction' ? 'border-red-100 bg-red-50/50' : ins.type === 'pattern' ? 'border-blue-100 bg-blue-50/50' : ins.type === 'suggestion' ? 'border-violet-100 bg-violet-50/50' : 'border-emerald-100 bg-emerald-50/50';
+                      return (
+                        <div key={idx} className={`p-3 rounded-xl border ${bg}`}>
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${dot}`} />
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-ink-faint">{ins.type}</span>
+                          </div>
+                          <h4 className="text-[12.5px] font-semibold text-foreground leading-snug">{ins.title}</h4>
+                          <p className="text-[11.5px] text-ink-muted mt-1 leading-relaxed">{ins.content}</p>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Action Tasks */}
+              <div className="rounded-2xl border border-border-subtle bg-surface-raised shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-border-subtle">
+                  <h3 className="text-[13px] font-bold text-foreground">Action Tasks</h3>
+                  <span className="text-[10px] font-semibold text-ink-faint">{tasks.length} items</span>
+                </div>
+                <div className="px-4 py-3 space-y-2 max-h-[200px] overflow-y-auto">
+                  {tasks.length === 0 ? (
+                    <p className="text-[11.5px] text-ink-muted py-3 text-center">No actions generated yet.</p>
+                  ) : (
+                    tasks.map((task, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-surface-raised border border-border-subtle gap-2">
+                        <span className="text-[12px] font-medium text-foreground truncate">{task.title}</span>
+                        <span className={`flex-shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase ${
+                          task.priority === 'high' ? 'bg-red-100 text-red-700' :
+                          task.priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                        }`}>{task.priority}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ── RIGHT PANEL: Tabbed Workspace ─────────────────── */}
+          <div className="flex-1 min-w-0 space-y-3">
+            {/* Tab bar */}
+            <div className="flex items-center gap-2">
+              {/* Sidebar toggle */}
+              {!sidebarOpen && (
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="flex h-[42px] w-[42px] flex-shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-surface-raised text-ink-faint hover:text-foreground hover:border-border-hover shadow-sm transition-all cursor-pointer"
+                  title="Open insights sidebar"
+                >
+                  <ChevronRight size={14} strokeWidth={2} />
+                </button>
+              )}
+              <div className="flex flex-1 bg-surface-raised border border-border-subtle/60 p-1 rounded-2xl gap-1 shadow-sm">
+                {[
+                  { id: 'grid' as const, label: 'Spatial Grid' },
+                  { id: 'graph' as const, label: 'Knowledge Graph' },
+                  { id: 'chat' as const, label: 'Second Brain' },
+                ].map(({ id, label }) => (
+                  <button
+                    key={id}
+                    onClick={() => setMainView(id)}
+                    className={`flex-1 text-center py-2.5 text-[12px] font-semibold rounded-xl transition-all duration-150 cursor-pointer ${
+                      mainView === id
+                        ? 'bg-foreground text-background shadow-sm'
+                        : 'text-ink-muted hover:bg-surface-card hover:text-foreground'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* View Contents */}
+            {isUploadingPdf && (
+              <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border-hover bg-surface-card animate-pulse">
+                <span className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-900 border-t-transparent mb-3" />
+                <p className="text-sm font-semibold text-foreground">Extracting PDF contents via Lemma...</p>
+                <p className="text-xs text-ink-faint mt-1">This registers file nodes and maps semantic knowledge.</p>
+              </div>
+            )}
+
+            {!isUploadingPdf && mainView === 'grid' && (
+              <SpatialGrid
+                thoughts={filteredThoughts}
+                isProcessing={isLoading}
+                density={settings.density}
+                onDelete={deleteThought}
+                onToggleTask={toggleTask}
+                onRetry={retryThought}
+                onUpdate={updateThought}
+                onSynthesize={synthesizeThoughts}
+                focusedThoughtId={focusedThoughtId}
+              />
+            )}
+
+            {!isUploadingPdf && mainView === 'graph' && (
+              <KnowledgeGraph
+                thoughts={filteredThoughts}
+                relationships={relationships}
+                onUpdateCoordinates={updateCoordinates}
+                onCreateRelationship={createRelationship}
+                onDeleteRelationship={deleteRelationship}
+                onDeleteThought={deleteThought}
+              />
+            )}
+
+            {!isUploadingPdf && mainView === 'chat' && (
+              <SecondBrainChat
+                thoughts={thoughts}
+                onQuery={queryViaLemma}
+                onAddThoughtDirectly={addThoughtDirectly}
+                onSelectView={setMainView}
+              />
+            )}
+          </div>
+        </div>
       </main>
 
       {/* Time-Travel Scrubber */}
@@ -183,8 +418,12 @@ export default function Home() {
       {/* Command Palette */}
       <CommandPalette
         isOpen={isPaletteOpen}
-        onClose={() => setIsPaletteOpen(false)}
+        onClose={() => {
+          setIsPaletteOpen(false);
+          setDraggedFile(null);
+        }}
         onSubmit={handlePaletteSubmit}
+        initialFile={draggedFile}
       />
 
       {/* Slide-over Drawer */}

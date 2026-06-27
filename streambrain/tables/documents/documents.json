@@ -1,0 +1,13 @@
+{
+  "name": "documents",
+  "primary_key_column": "id",
+  "enable_rls": false,
+  "visibility": "POD",
+  "columns": [
+    { "name": "title", "type": "TEXT", "required": true, "max_length": 240 },
+    { "name": "file_path", "type": "TEXT", "required": true },
+    { "name": "status", "type": "TEXT", "required": false },
+    { "name": "summary", "type": "TEXT", "required": false }
+  ],
+  "config": {}
+}

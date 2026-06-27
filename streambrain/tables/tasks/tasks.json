@@ -1,0 +1,14 @@
+{
+  "name": "tasks",
+  "primary_key_column": "id",
+  "enable_rls": false,
+  "visibility": "POD",
+  "columns": [
+    { "name": "title", "type": "TEXT", "required": true, "max_length": 240 },
+    { "name": "status", "type": "ENUM", "required": true, "options": ["todo", "in_progress", "done"], "default": "todo" },
+    { "name": "priority", "type": "ENUM", "required": true, "options": ["low", "medium", "high"], "default": "medium" },
+    { "name": "due_date", "type": "TEXT", "required": false },
+    { "name": "source_thought_id", "type": "UUID", "required": false }
+  ],
+  "config": {}
+}

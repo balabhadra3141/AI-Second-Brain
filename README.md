@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# StreamBrain — Your Invisible AI Second Brain
 
-## Getting Started
+StreamBrain is a modern, premium-look personal knowledge-management web application. It integrates note-taking, task management, dynamic relationships mapping, and real-time AI capabilities into a single cohesive experience.
 
-First, run the development server:
+## 🚀 Key Features
 
+1. **Interactive Dashboard**:
+   - Organize notes, tasks, and learnings visually as light-mode surface-raised cards.
+   - Reorder, group, or merge cards directly. Merging cards automatically synthesizes a summarized, cohesive card.
+   - Robust search functionality to filter thoughts in real time.
+
+2. **AI-Powered Chat**:
+   - Engage with your second brain using natural language.
+   - Provides accurate inline citations (knowledge source, original tasks, ideas) mapped directly to your notes.
+   - Supports persistent conversation histories.
+
+3. **Knowledge Graph**:
+   - A highly interactive SVG-based graph visualization mapping connections between thoughts.
+   - Styled with a premium dotted-grid background synced fully to light and dark theme variables.
+
+4. **Left Sidebar Panel**:
+   - Collapsible panel showcasing upcoming tasks and proactive AI insights.
+   - Smooth transitions and persisted layout states.
+
+5. **Document & PDF Upload Ingestion**:
+   - Upload PDFs, text files, or images.
+   - Automatic text/markdown extraction with an AI classification pipeline storing files directly to the Lemma datastore.
+   - Graceful overwrite handling for duplicate files to ensure robust uploads.
+
+---
+
+## 🛠️ Tech Stack
+- **Framework**: Next.js 16 (App Router, Turbopack)
+- **Language**: TypeScript
+- **Styling**: Vanilla CSS (CSS variables, animations, glassmorphism)
+- **Integration**: Lemma SDK (`lemma-sdk`) for LLM agents, file uploads, and datastore management
+
+---
+
+## ⚙️ Setup and Installation
+
+### 1. Prerequisites
+- Node.js (v18+ recommended)
+- [Lemma CLI](https://github.com/lemma-ai/lemma) authenticated to your workspace.
+
+### 2. Installation
+Install project dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Environment Variables
+Create a `.env.local` file in the root directory:
+```env
+LEMMA_API_URL=http://127.0.0.1:8711
+LEMMA_API_TOKEN=your-lemma-api-token
+NEXT_PUBLIC_THEME=light
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Running the Development Server
+Use the bypassed command if scripting is restricted on Windows/PowerShell:
+```bash
+powershell -ExecutionPolicy Bypass -Command "npm run dev"
+# Or standard command:
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-## Learn More
+### 5. Production Build
+Build the optimized application:
+```bash
+powershell -ExecutionPolicy Bypass -Command "npm run build"
+# Or standard command:
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🧪 Verification & Development
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Comprehensive project guidelines, code structures, and verification checklists are detailed in [project.md](./project.md).
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+*Created and maintained as a part of the AI Second Brain project.*

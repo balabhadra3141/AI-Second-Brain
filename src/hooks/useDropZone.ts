@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-export function useDropZone() {
+export function useDropZone(onDrop?: (files: FileList) => void) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragCounter, setDragCounter] = useState(0);
 
@@ -39,12 +39,9 @@ export function useDropZone() {
 
     const files = e.dataTransfer?.files;
     if (files && files.length > 0) {
-      // In a real app, we'd process the files here
-      const fileNames = Array.from(files).map((f) => f.name).join(', ');
-      return fileNames;
+      onDrop?.(files);
     }
-    return null;
-  }, []);
+  }, [onDrop]);
 
   useEffect(() => {
     window.addEventListener('dragenter', handleDragEnter);

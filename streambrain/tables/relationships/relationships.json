@@ -1,0 +1,13 @@
+{
+  "name": "relationships",
+  "primary_key_column": "id",
+  "enable_rls": false,
+  "visibility": "POD",
+  "columns": [
+    { "name": "source_thought_id", "type": "UUID", "required": true },
+    { "name": "target_thought_id", "type": "UUID", "required": true },
+    { "name": "relation_type", "type": "TEXT", "required": true, "max_length": 60 },
+    { "name": "confidence", "type": "FLOAT", "required": false }
+  ],
+  "config": {}
+}

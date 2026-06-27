@@ -2,7 +2,7 @@
   "name": "streambrain-qa",
   "description": "Answers natural-language questions about the user's spatial grid of thoughts. Context is injected per-request.",
   "instruction": { "$file": "instruction.md" },
-  "agent_runtime": { "profile_id": "system:lemma", "model_name": "openai/gpt-4o-mini" },
+  "agent_runtime": { "profile_id": "system:lemma", "model_name": "deepseek-v4-flash" },
   "toolsets": [],
   "visibility": "POD",
   "permissions": { "grants": [] }

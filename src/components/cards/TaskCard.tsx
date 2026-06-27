@@ -28,6 +28,15 @@ export default function TaskCard({ thought, onToggle, onDelete, onRetry, onUpdat
   const priority = thought.priority || 'low';
   const ps = priorityStyles[priority];
 
+  const cleanContent = (text: string) => text
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  const cleaned = cleanContent(thought.content);
+
   return (
     <CardWrapper
       type="task"
@@ -67,17 +76,11 @@ export default function TaskCard({ thought, onToggle, onDelete, onRetry, onUpdat
                   initial={{ pathLength: 0, opacity: 0 }}
                   animate={{ pathLength: 1, opacity: 1 }}
                   transition={{ duration: 0.25, ease: 'easeOut' }}
-                  width="10"
-                  height="10"
-                  viewBox="0 0 12 12"
-                  fill="none"
+                  width="10" height="10" viewBox="0 0 12 12" fill="none"
                 >
                   <motion.path
                     d="M2 6L5 9L10 3"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
                     transition={{ duration: 0.25, ease: 'easeOut' }}
@@ -96,15 +99,13 @@ export default function TaskCard({ thought, onToggle, onDelete, onRetry, onUpdat
                   setIsEditing(false);
                 }}
                 onCancel={() => setIsEditing(false)}
-                className="text-[14px] leading-relaxed text-foreground"
+                className="text-[13.5px] leading-relaxed text-foreground"
               />
             ) : (
-              <p
-                className={`task-text flex-1 text-[14px] leading-relaxed transition-colors duration-300 ${
-                  thought.completed ? 'text-ink-faint' : 'text-foreground'
-                }`}
-              >
-                {thought.content}
+              <p className={`task-text text-[13.5px] leading-relaxed transition-colors duration-300 ${
+                thought.completed ? 'text-ink-faint line-through' : 'text-foreground'
+              }`}>
+                {cleaned}
               </p>
             )}
           </div>

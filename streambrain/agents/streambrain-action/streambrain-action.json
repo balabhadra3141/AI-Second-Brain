@@ -1,0 +1,9 @@
+{
+  "name": "streambrain-action",
+  "description": "Transforms user requests or agent replies into structured tasks, study plans, or quiz structures.",
+  "instruction": { "$file": "instruction.md" },
+  "agent_runtime": { "profile_id": "system:lemma", "model_name": "deepseek-v4-flash" },
+  "toolsets": [],
+  "visibility": "POD",
+  "permissions": { "grants": [] }
+}

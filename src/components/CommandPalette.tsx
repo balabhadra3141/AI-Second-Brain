@@ -9,9 +9,10 @@ interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (content: string, file?: File) => void;
+  initialFile?: File | null;
 }
 
-export default function CommandPalette({ isOpen, onClose, onSubmit }: CommandPaletteProps) {
+export default function CommandPalette({ isOpen, onClose, onSubmit, initialFile }: CommandPaletteProps) {
   const [value, setValue] = useState('');
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -21,13 +22,16 @@ export default function CommandPalette({ isOpen, onClose, onSubmit }: CommandPal
   // Auto-focus textarea when palette opens
   useEffect(() => {
     if (isOpen) {
+      if (initialFile) {
+        setAttachedFile(initialFile);
+      }
       setTimeout(() => textareaRef.current?.focus(), 50);
     } else {
       setValue('');
       setAttachedFile(null);
       setIsRecording(false);
     }
-  }, [isOpen]);
+  }, [isOpen, initialFile]);
 
   // Close on Escape
   useEffect(() => {

@@ -196,142 +196,171 @@ const SEED_THOUGHTS: Thought[] = [
 
 export function useThoughts() {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [insights, setInsights] = useState<any[]>([]);
+  const [relationships, setRelationships] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const isSyncing = useRef(false);
-  
-  const synthesisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingSynthesisRef = useRef<{ 
-    optimisticId: string; 
-    thought1: Thought; 
-    thought2: Thought;
-    index1: number;
-    index2: number;
-  } | null>(null);
 
-  useEffect(() => {
-    const handleUndo = (e: Event) => {
-      const customEvent = e as CustomEvent<{ optimisticId: string }>;
-      const { optimisticId } = customEvent.detail;
-      
-      if (pendingSynthesisRef.current && pendingSynthesisRef.current.optimisticId === optimisticId) {
-        if (synthesisTimeoutRef.current) {
-          clearTimeout(synthesisTimeoutRef.current);
-          synthesisTimeoutRef.current = null;
-        }
-        
-        const { thought1, thought2, index1, index2 } = pendingSynthesisRef.current;
-        setThoughts((curr) => {
-          const restored = curr.filter((t) => t.id !== optimisticId);
-          
-          // Insert back at original indices (highest index first to prevent shifting the lower index)
-          const toInsert = [
-            { t: thought1, i: index1 },
-            { t: thought2, i: index2 }
-          ].sort((a, b) => b.i - a.i);
-
-          for (const item of toInsert) {
-            const safeIndex = Math.min(Math.max(0, item.i), restored.length);
-            restored.splice(safeIndex, 0, item.t);
+  const loadThoughts = async () => {
+    try {
+      const res = await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list_thoughts' }),
+      });
+      const data = await res.json();
+      if (data.ok && data.items) {
+        if (data.items.length > 0) {
+          const mapped = data.items.map((item: any) => ({
+            id: item.id,
+            type: item.type as ThoughtType,
+            content: item.content,
+            createdAt: new Date(item.created_at || Date.now()),
+            completed: !!item.completed,
+            priority: (item.priority as Priority) || 'low',
+            deadline: item.deadline || undefined,
+            nextSteps: Array.isArray(item.next_steps) ? item.next_steps : [],
+            insights: item.insights || '',
+            connections: Array.isArray(item.tags) ? item.tags : [],
+          }));
+          setThoughts(mapped);
+        } else {
+          // Seed the thoughts table if empty
+          const seeded: Thought[] = [];
+          for (const t of SEED_THOUGHTS) {
+            const resCreate = await fetch('/api/lemma', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'create_thought',
+                payload: {
+                  title: t.content.slice(0, 50),
+                  content: t.content,
+                  type: t.type,
+                  x: 0,
+                  y: 0,
+                  priority: t.priority || 'low',
+                  deadline: t.deadline || null,
+                  insights: t.insights || '',
+                  next_steps: t.nextSteps || [],
+                  tags: [],
+                  completed: !!t.completed,
+                },
+              }),
+            });
+            const dCreate = await resCreate.json();
+            if (dCreate.ok && dCreate.record) {
+              const item = dCreate.record;
+              seeded.push({
+                id: item.id,
+                type: item.type as ThoughtType,
+                content: item.content,
+                createdAt: new Date(item.created_at || Date.now()),
+                completed: !!item.completed,
+                priority: (item.priority as Priority) || 'low',
+                deadline: item.deadline || undefined,
+                nextSteps: Array.isArray(item.next_steps) ? item.next_steps : [],
+                insights: item.insights || '',
+                connections: [],
+              });
+            }
           }
-          return restored;
+          setThoughts(seeded);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to list thoughts, falling back to seed', e);
+      setThoughts(SEED_THOUGHTS);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadTasksAndInsights = async () => {
+    try {
+      const tRes = await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list_tasks' }),
+      });
+      const tData = await tRes.json();
+      if (tData.ok) setTasks(tData.items || []);
+
+      const iRes = await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list_insights' }),
+      });
+      const iData = await iRes.json();
+      if (iData.ok) setInsights(iData.items || []);
+    } catch (e) {
+      console.error('Failed to load tasks and insights', e);
+    }
+  };
+
+  const runProactiveInsights = async () => {
+    try {
+      const res = await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'run_insights' }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setInsights(data.items || []);
+      }
+    } catch (e) {
+      console.error('Failed to run insights', e);
+    }
+  };
+
+  const executeAction = async (actionType: string, context: string) => {
+    try {
+      const res = await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'run_action', actionType, context }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        // Refresh tasks list
+        const tRes = await fetch('/api/lemma', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'list_tasks' }),
         });
-        pendingSynthesisRef.current = null;
+        const tData = await tRes.json();
+        if (tData.ok) setTasks(tData.items || []);
       }
-    };
-
-    window.addEventListener('undoSynthesis', handleUndo);
-    return () => window.removeEventListener('undoSynthesis', handleUndo);
-  }, []);
-
-  // Safely initialize offline queue listener on client side
-  useEffect(() => {
-    const handleOnline = () => {
-      syncOfflineQueue();
-    };
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', handleOnline);
-      return () => window.removeEventListener('online', handleOnline);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Load seed data immediately; real Lemma classifications flow in as the user adds thoughts
-    setThoughts(SEED_THOUGHTS);
-    setIsLoading(false);
-    if (typeof navigator !== 'undefined' && navigator.onLine) {
-      syncOfflineQueue();
-    }
-  }, []);
-
-  const syncOfflineQueue = async () => {
-    if (isSyncing.current) return;
-
-    const queueStr = localStorage.getItem('offline_thoughts_queue');
-    if (!queueStr) return;
-
-    let queue: { id: string; content: string }[] = [];
-    try {
-      queue = JSON.parse(queueStr);
-    } catch {
-      localStorage.removeItem('offline_thoughts_queue');
-      return;
-    }
-
-    if (queue.length === 0) return;
-    isSyncing.current = true;
-
-    const remainingQueue = [...queue];
-    for (const item of queue) {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) break;
-
-      try {
-        // HACKATHON REQUIREMENT: Utilizing Lemma SDK to classify thoughts that were
-        // captured offline and are now being synced.
-        const realThought = await classifyViaLemma(item.content);
-        setThoughts((prev) =>
-          prev.map((t) => (t.id === item.id ? { ...realThought, id: item.id } : t))
-        );
-        remainingQueue.shift();
-        localStorage.setItem('offline_thoughts_queue', JSON.stringify(remainingQueue));
-      } catch {
-        setThoughts((prev) =>
-          prev.map((t) =>
-            t.id === item.id ? { ...t, hasFailed: true, isOptimistic: false } : t
-          )
-        );
-        remainingQueue.shift();
-        localStorage.setItem('offline_thoughts_queue', JSON.stringify(remainingQueue));
-      }
-    }
-    isSyncing.current = false;
-  };
-
-  const processThought = async (optimisticId: string, content: string) => {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      const queueStr = localStorage.getItem('offline_thoughts_queue');
-      const queue = queueStr ? JSON.parse(queueStr) : [];
-      queue.push({ id: optimisticId, content });
-      localStorage.setItem('offline_thoughts_queue', JSON.stringify(queue));
-      return;
-    }
-
-    try {
-      // HACKATHON REQUIREMENT: Utilizing Lemma SDK for real-time thought classification.
-      const realThought = await classifyViaLemma(content);
-      setThoughts((prev) =>
-        prev.map((t) => (t.id === optimisticId ? { ...realThought, id: optimisticId } : t))
-      );
-    } catch {
-      setThoughts((prev) =>
-        prev.map((t) =>
-          t.id === optimisticId ? { ...t, hasFailed: true, isOptimistic: false } : t
-        )
-      );
+    } catch (e) {
+      console.error('Failed to run action', e);
     }
   };
 
-  const addThought = useCallback((content: string) => {
-    const optimisticId = `optimistic-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const loadRelationships = async () => {
+    try {
+      const res = await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list_relationships' }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setRelationships(data.items || []);
+      }
+    } catch (e) {
+      console.error('Failed to load relationships', e);
+    }
+  };
+
+  useEffect(() => {
+    loadThoughts();
+    loadTasksAndInsights();
+    loadRelationships();
+  }, []);
+
+  const addThought = useCallback(async (content: string) => {
+    const optimisticId = `optimistic-${Date.now()}`;
     const optimistic: Thought = {
       id: optimisticId,
       type: 'knowledge',
@@ -340,47 +369,199 @@ export function useThoughts() {
       isOptimistic: true,
       hasFailed: false,
     };
-
     setThoughts((prev) => [optimistic, ...prev]);
-    processThought(optimisticId, content);
-  }, []);
 
-  const retryThought = useCallback((id: string) => {
-    setThoughts((prev) => {
-      const thought = prev.find((t) => t.id === id);
-      if (!thought) return prev;
-      processThought(id, thought.content);
-      return prev.map((t) =>
-        t.id === id ? { ...t, hasFailed: false, isOptimistic: true } : t
+    try {
+      const classified = await classifyViaLemma(content);
+      const res = await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_thought',
+          payload: {
+            title: content.slice(0, 50),
+            content: content,
+            type: classified.type,
+            x: 0,
+            y: 0,
+            priority: classified.priority || 'low',
+            deadline: classified.deadline || null,
+            insights: classified.insights || '',
+            next_steps: classified.nextSteps || [],
+            tags: [],
+            completed: false,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data.ok && data.record) {
+        const item = data.record;
+        const real: Thought = {
+          id: item.id,
+          type: item.type as ThoughtType,
+          content: item.content,
+          createdAt: new Date(item.created_at || Date.now()),
+          completed: !!item.completed,
+          priority: (item.priority as Priority) || 'low',
+          deadline: item.deadline || undefined,
+          nextSteps: Array.isArray(item.next_steps) ? item.next_steps : [],
+          insights: item.insights || '',
+          connections: [],
+        };
+        setThoughts((prev) => prev.map((t) => (t.id === optimisticId ? real : t)));
+        // Generate insights passively on new captures
+        void runProactiveInsights();
+      } else {
+        throw new Error();
+      }
+    } catch {
+      setThoughts((prev) =>
+        prev.map((t) => (t.id === optimisticId ? { ...t, hasFailed: true, isOptimistic: false } : t))
       );
-    });
+    }
   }, []);
 
-  const deleteThought = useCallback((id: string) => {
+  const addThoughtDirectly = useCallback(async (type: ThoughtType, content: string, insights = '', nextSteps: string[] = []) => {
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimistic: Thought = {
+      id: optimisticId,
+      type,
+      content,
+      createdAt: new Date(),
+      isOptimistic: true,
+      hasFailed: false,
+      insights,
+      nextSteps,
+    };
+    setThoughts((prev) => [optimistic, ...prev]);
+
+    try {
+      const res = await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_thought',
+          payload: {
+            title: content.slice(0, 50),
+            content,
+            type,
+            x: 0,
+            y: 0,
+            priority: 'low',
+            deadline: null,
+            insights,
+            next_steps: nextSteps,
+            tags: [],
+            completed: false,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data.ok && data.record) {
+        const item = data.record;
+        const real: Thought = {
+          id: item.id,
+          type: item.type as ThoughtType,
+          content: item.content,
+          createdAt: new Date(item.created_at || Date.now()),
+          completed: !!item.completed,
+          priority: 'low',
+          nextSteps: item.next_steps || [],
+          insights: item.insights || '',
+          connections: [],
+        };
+        setThoughts((prev) => prev.map((t) => (t.id === optimisticId ? real : t)));
+        void runProactiveInsights();
+      }
+    } catch {
+      setThoughts((prev) => prev.filter((t) => t.id !== optimisticId));
+    }
+  }, []);
+
+  const deleteThought = useCallback(async (id: string) => {
     setThoughts((prev) => prev.filter((t) => t.id !== id));
+    try {
+      await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_thought', id }),
+      });
+    } catch (e) {
+      console.error('Failed to delete thought from DB', e);
+    }
   }, []);
 
-  const toggleTask = useCallback((id: string) => {
+  const toggleTask = useCallback(async (id: string) => {
+    let currentCompleted = false;
     setThoughts((prev) =>
-      prev.map((t) =>
-        t.id === id && t.type === 'task' ? { ...t, completed: !t.completed } : t
-      )
+      prev.map((t) => {
+        if (t.id === id && t.type === 'task') {
+          currentCompleted = !t.completed;
+          return { ...t, completed: currentCompleted };
+        }
+        return t;
+      })
     );
+    try {
+      await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_thought',
+          id,
+          payload: { completed: currentCompleted },
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to toggle task in DB', e);
+    }
   }, []);
 
-  const updateThought = useCallback((id: string, content: string) => {
+  const updateThought = useCallback(async (id: string, content: string) => {
     setThoughts((prev) => prev.map((t) => (t.id === id ? { ...t, content } : t)));
+    try {
+      await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_thought',
+          id,
+          payload: { content, title: content.slice(0, 50) },
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to update thought in DB', e);
+    }
+  }, []);
+
+  const updateCoordinates = useCallback(async (id: string, x: number, y: number) => {
+    setThoughts((prev) => prev.map((t) => (t.id === id ? { ...t, x, y } : t)));
+    try {
+      await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_thought',
+          id,
+          payload: { x, y },
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to update coordinates in DB', e);
+    }
   }, []);
 
   const thoughtsRef = useRef(thoughts);
-  useEffect(() => { thoughtsRef.current = thoughts; }, [thoughts]);
+  useEffect(() => {
+    thoughtsRef.current = thoughts;
+  }, [thoughts]);
 
   const synthesizeThoughts = useCallback((id1: string, id2: string) => {
     const thought1 = thoughtsRef.current.find((t) => t.id === id1);
     const thought2 = thoughtsRef.current.find((t) => t.id === id2);
     if (!thought1 || !thought2) return;
 
-    const optimisticId = `optimistic-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const optimisticId = `optimistic-${Date.now()}`;
     const optimistic: Thought = {
       id: optimisticId,
       type: 'knowledge',
@@ -390,54 +571,116 @@ export function useThoughts() {
       hasFailed: false,
     };
 
-    const index1 = thoughtsRef.current.findIndex((t) => t.id === id1);
-    const index2 = thoughtsRef.current.findIndex((t) => t.id === id2);
-
     setThoughts((prev) => {
       const filtered = prev.filter((t) => t.id !== id1 && t.id !== id2);
       return [optimistic, ...filtered];
     });
 
-    pendingSynthesisRef.current = { optimisticId, thought1, thought2, index1, index2 };
+    // Delete source thoughts
+    void deleteThought(id1);
+    void deleteThought(id2);
 
-    synthesisTimeoutRef.current = setTimeout(() => {
-      synthesisTimeoutRef.current = null;
-      pendingSynthesisRef.current = null;
-
-      // HACKATHON REQUIREMENT: Utilizing Lemma SDK for drag-and-drop node synthesis.
-      synthesizeViaLemma(thought1.content, thought2.content)
-        .then((realThought) => {
-          setThoughts((curr) =>
-            curr.map((t) => (t.id === optimisticId ? { ...realThought, id: optimisticId } : t))
-          );
-        })
-        .catch(() => {
-          alert('Synthesis failed. Restoring original thoughts.');
-          setThoughts((curr) => {
-            const restored = curr.filter((t) => t.id !== optimisticId);
-            const toInsert = [
-              { t: thought1, i: index1 },
-              { t: thought2, i: index2 }
-            ].sort((a, b) => b.i - a.i);
-
-            for (const item of toInsert) {
-              const safeIndex = Math.min(Math.max(0, item.i), restored.length);
-              restored.splice(safeIndex, 0, item.t);
-            }
-            return restored;
-          });
+    synthesizeViaLemma(thought1.content, thought2.content)
+      .then(async (realThought) => {
+        const res = await fetch('/api/lemma', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'create_thought',
+            payload: {
+              title: realThought.content.slice(0, 50),
+              content: realThought.content,
+              type: realThought.type,
+              x: 0,
+              y: 0,
+              priority: 'low',
+              insights: realThought.insights || '',
+              next_steps: [],
+              tags: [],
+              completed: false,
+            },
+          }),
         });
-    }, 4000);
+        const data = await res.json();
+        if (data.ok && data.record) {
+          const item = data.record;
+          const real: Thought = {
+            id: item.id,
+            type: item.type as ThoughtType,
+            content: item.content,
+            createdAt: new Date(item.created_at || Date.now()),
+            completed: !!item.completed,
+            priority: (item.priority as Priority) || 'low',
+            deadline: item.deadline || undefined,
+            nextSteps: Array.isArray(item.next_steps) ? item.next_steps : [],
+            insights: item.insights || '',
+            connections: [],
+          };
+          setThoughts((prev) => prev.map((t) => (t.id === optimisticId ? real : t)));
+        }
+      })
+      .catch(() => {
+        // On failure, reload thoughts
+        void loadThoughts();
+      });
+  }, []);
+
+  const createRelationship = useCallback(async (sourceId: string, targetId: string, relationType = 'relates_to') => {
+    try {
+      const res = await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_relationship',
+          payload: {
+            source_thought_id: sourceId,
+            target_thought_id: targetId,
+            relation_type: relationType,
+            confidence: 1.0
+          }
+        }),
+      });
+      const data = await res.json();
+      if (data.ok && data.record) {
+        setRelationships((prev) => [...prev, data.record]);
+      }
+    } catch (e) {
+      console.error('Failed to create relationship', e);
+    }
+  }, []);
+
+  const deleteRelationship = useCallback(async (id: string) => {
+    setRelationships((prev) => prev.filter((r) => r.id !== id));
+    try {
+      await fetch('/api/lemma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_relationship', id }),
+      });
+    } catch (e) {
+      console.error('Failed to delete relationship', e);
+    }
   }, []);
 
   return {
     thoughts,
     isLoading,
+    tasks,
+    insights,
+    relationships,
     addThought,
     deleteThought,
     toggleTask,
     updateThought,
-    retryThought,
+    retryThought: () => {},
     synthesizeThoughts,
+    runProactiveInsights,
+    executeAction,
+    loadTasksAndInsights,
+    createRelationship,
+    deleteRelationship,
+    updateCoordinates,
+    loadThoughts,
+    addThoughtDirectly,
   };
 }

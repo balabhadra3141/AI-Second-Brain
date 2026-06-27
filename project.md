@@ -2,7 +2,8 @@
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Core Functionalities](#core-functionalities)
+2. [Lemma Setup Guide](#lemma-setup-guide)
+3. [Core Functionalities](#core-functionalities)
    - [1️⃣ StreamBrain Dashboard](#streambrain-dashboard)
    - [2️⃣ Second‑Brain Chat](#second-brain-chat)
    - [3️⃣ Knowledge Graph](#knowledge-graph)
@@ -11,10 +12,10 @@
    - [6️⃣ Theme & UI Consistency](#theme--ui-consistency)
    - [7️⃣ API & Authentication Layer](#api--authentication-layer)
    - [8️⃣ Data Persistence (SQLite / Lemma SDK)](#data-persistence)
-3. [How to Verify / Demo Each Feature](#how-to-verify--demo-each-feature)
-4. [Running the Project Locally](#running-the-project-locally)
-5. [Build & Deployment Notes](#build--deployment-notes)
-6. [Future Enhancements](#future-enhancements)
+4. [How to Verify / Demo Each Feature](#how-to-verify--demo-each-feature)
+5. [Running the Project Locally](#running-the-project-locally)
+6. [Build & Deployment Notes](#build--deployment-notes)
+7. [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -28,6 +29,37 @@
 - Full **unit‑test** coverage for API routes and UI components.
 
 The project lives under `c:\Users\balab\OneDrive\Desktop\Works\AI-Second-Brain`.
+
+---
+
+## Lemma Setup Guide
+
+To connect the application to the Lemma service and initialize your personal second brain workspace, follow these setup steps:
+
+### 1. Authenticate the CLI
+Log in via the browser using the Lemma CLI. This will authorize your terminal and generate the necessary credentials on your machine:
+```bash
+lemma auth login
+```
+
+### 2. Create the Pod
+Create a new pod specifically for the StreamBrain application named `streambrain`:
+```bash
+lemma pod create streambrain
+```
+
+### 3. Import Local Pod Resources
+Import the pre-configured local resource bundle (schema, tables, and agents stored inside the `./streambrain` directory) into your newly created pod:
+```bash
+lemma pod import streambrain --pod streambrain
+```
+
+### 4. Fetch your Pod ID
+To find your new pod's UUID, run:
+```bash
+lemma pod get streambrain
+```
+Use this UUID value to update `LEMMA_POD_ID` in your `.env.local` configuration.
 
 ---
 
@@ -55,7 +87,7 @@ The project lives under `c:\Users\balab\OneDrive\Desktop\Works\AI-Second-Brain`.
 - **Lemma SDK** uploads file to `/documents` folder, extracts markdown/text.
 - Content is **classified** via `streambrain‑classifier` prompt into a JSON `Thought`.
 - Result stored in Lemma `thoughts` and `documents` tables.
-- Handles **502/401** errors with graceful fallback and logs the CLI token.
+- Overwrites files gracefully on name conflicts by automatically cleaning up existing files first.
 
 ### 5️⃣ Task & Insight Sidebar
 - Collapsible **left‑hand panel** that shows:
@@ -70,10 +102,10 @@ The project lives under `c:\Users\balab\OneDrive\Desktop\Works\AI-Second-Brain`.
 - Light mode uses calm pastel accents.
 
 ### 7️⃣ API & Authentication Layer
-- Centralised Lemma client (`src/lib/lemma.ts`).
-- **Token fallback**: Tries `lemma auth print-token`; if that fails, reads `LEMMA_API_TOKEN` env var.
-- Early **401 handling** returns a JSON error with clear message.
-- All API routes (`/api/*`) are wrapped with `withErrorHandler` for consistent responses.
+- Centralised Lemma client mapping to active environment settings.
+- **Token fallback**: Tries `lemma auth print-token` (via child process); if that fails, reads the `LEMMA_API_TOKEN` env var.
+- Bypasses cookies via server-side Bearer authentication headers.
+- Handles standard HTTP errors cleanly, preventing browser JSON parsing errors.
 
 ### 8️⃣ Data Persistence
 - Primary storage is the **Lemma SDK** (remote) for thoughts & documents.
@@ -117,7 +149,7 @@ Below is a step‑by‑step checklist you can run locally. Screenshots are provi
 3. A spinner appears; after ~2 seconds the card list shows a new **Thought** titled “<PDF‑title>”.
 4. Open the card – the extracted text should be present; click **Classify** to see AI‑generated categories.
 5. Inspect the network tab – a `POST /api/upload` returns **200** with JSON containing `thoughtId`.
-6. To test error handling, temporarily remove `LEMMA_API_TOKEN` from `.env.local` and retry upload – you should see a console error **File upload failed “File upload processing failed”** and a UI toast with the same message.
+6. Retrying the same upload should delete the duplicate file and succeed cleanly, avoiding DATSTORE conflict errors.
 
 > **Screenshot**: ![Upload Error](file:///C:/Users/balab/.gemini/antigravity-ide/brain/96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca/media_96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca_1782540744940.png)
 
@@ -155,9 +187,9 @@ cd AI-Second-Brain
 npm install
 
 # Create a .env.local (copy from .env.example) and set:
-#   LEMMA_API_URL=http://127.0.0.1:8711
-#   LEMMA_API_TOKEN=your‑lemma‑token
-#   NEXT_PUBLIC_THEME=light   # or dark
+#   LEMMA_API_URL=https://api.lemma.work
+#   LEMMA_AUTH_URL=https://lemma.work/auth
+#   LEMMA_POD_ID=019f0706-063e-71a5-8fbe-ce726b3dabbf
 
 # Start dev server
 npm run dev   # runs on http://localhost:3000

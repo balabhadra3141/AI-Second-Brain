@@ -41,23 +41,47 @@ StreamBrain is a modern, premium-look personal knowledge-management web applicat
 
 ### 1. Prerequisites
 - Node.js (v18+ recommended)
-- [Lemma CLI](https://github.com/lemma-ai/lemma) authenticated to your workspace.
+- [Lemma CLI](https://github.com/lemma-ai/lemma) installed.
 
-### 2. Installation
+### 2. Lemma Setup & Pod Initialization
+Set up your workspace inside Lemma:
+
+1. **Login**:
+   ```bash
+   lemma auth login
+   ```
+2. **Create Pod**:
+   Create a new pod named `streambrain`:
+   ```bash
+   lemma pod create streambrain
+   ```
+3. **Import Setup Bundle**:
+   Import the pre-configured local schema and agents:
+   ```bash
+   lemma pod import streambrain --pod streambrain
+   ```
+4. **Get Pod ID**:
+   Retrieve the UUID of your new pod:
+   ```bash
+   lemma pod get streambrain
+   ```
+   Copy the ID and use it as `YOUR_LEMMA_POD_ID` in step 4 below.
+
+### 3. Installation
 Install project dependencies:
 ```bash
 npm install
 ```
 
-### 3. Environment Variables
+### 4. Environment Variables
 Create a `.env.local` file in the root directory:
 ```env
-LEMMA_API_URL=http://127.0.0.1:8711
-LEMMA_API_TOKEN=your-lemma-api-token
-NEXT_PUBLIC_THEME=light
+LEMMA_API_URL=https://api.lemma.work
+LEMMA_AUTH_URL=https://lemma.work/auth
+LEMMA_POD_ID=YOUR_LEMMA_POD_ID
 ```
 
-### 4. Running the Development Server
+### 5. Running the Development Server
 Use the bypassed command if scripting is restricted on Windows/PowerShell:
 ```bash
 powershell -ExecutionPolicy Bypass -Command "npm run dev"
@@ -67,7 +91,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-### 5. Production Build
+### 6. Production Build
 Build the optimized application:
 ```bash
 powershell -ExecutionPolicy Bypass -Command "npm run build"

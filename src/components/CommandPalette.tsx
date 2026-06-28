@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Paperclip, Mic, X, Zap, MicOff } from 'lucide-react';
+import { Paperclip, Mic, X, Zap } from 'lucide-react';
 import VoiceVisualizer from './VoiceVisualizer';
 
 interface CommandPaletteProps {
@@ -27,9 +27,11 @@ export default function CommandPalette({ isOpen, onClose, onSubmit, initialFile 
       }
       setTimeout(() => textareaRef.current?.focus(), 50);
     } else {
-      setValue('');
-      setAttachedFile(null);
-      setIsRecording(false);
+      setTimeout(() => {
+        setValue('');
+        setAttachedFile(null);
+        setIsRecording(false);
+      }, 0);
     }
   }, [isOpen, initialFile]);
 

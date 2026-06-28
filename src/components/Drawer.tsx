@@ -6,9 +6,8 @@ import {
   X,
   Settings,
   Palette,
-  ChevronRight,
 } from 'lucide-react';
-import { AppSettings, Theme, Typography, GridDensity, ProcessingMode } from '@/hooks/useSettings';
+import { AppSettings } from '@/hooks/useSettings';
 import AppearanceSection from './drawer/AppearanceSection';
 import IntelligenceSection from './drawer/IntelligenceSection';
 import VaultSection from './drawer/VaultSection';

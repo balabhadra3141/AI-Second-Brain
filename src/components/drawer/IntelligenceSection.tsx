@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, BrainCircuit, Clock, Check } from 'lucide-react';
 import { AppSettings, ProcessingMode } from '@/hooks/useSettings';

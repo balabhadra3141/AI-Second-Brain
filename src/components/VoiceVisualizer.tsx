@@ -15,6 +15,7 @@ export default function VoiceVisualizer({ onTranscriptionComplete, onCancel }: V
   const animationRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const transcriptRef = useRef<string>('');
   const hasTranscribedRef = useRef<boolean>(false);
@@ -32,6 +33,7 @@ export default function VoiceVisualizer({ onTranscriptionComplete, onCancel }: V
         streamRef.current = stream;
 
         // Initialize Web Audio API
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
         const audioContext = new AudioContext();
         audioContextRef.current = audioContext;
@@ -45,12 +47,14 @@ export default function VoiceVisualizer({ onTranscriptionComplete, onCancel }: V
         dataArray = new Uint8Array(bufferLength);
 
         // Initialize Speech Recognition
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (SpeechRecognition) {
           const recognition = new SpeechRecognition();
           recognition.continuous = true;
           recognition.interimResults = false;
           
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           recognition.onresult = (event: any) => {
             let finalTranscript = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -70,7 +74,7 @@ export default function VoiceVisualizer({ onTranscriptionComplete, onCancel }: V
         const updateVisualizer = () => {
           if (status !== 'listening') return;
           
-          analyser.getByteFrequencyData(dataArray as any);
+          analyser.getByteFrequencyData(dataArray);
 
           // Update DOM nodes directly to avoid React re-renders (60fps)
           for (let i = 0; i < BAR_COUNT; i++) {
@@ -108,7 +112,7 @@ export default function VoiceVisualizer({ onTranscriptionComplete, onCancel }: V
         audioContextRef.current.close();
       }
       if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (e) {}
+        try { recognitionRef.current.stop(); } catch {}
       }
     };
   }, [onCancel, status]);

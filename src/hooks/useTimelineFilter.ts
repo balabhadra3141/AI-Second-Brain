@@ -22,7 +22,7 @@ export function useTimelineFilter(thoughts: Thought[]) {
 
   const { minTime, maxTime } = useMemo(() => {
     if (!thoughts || thoughts.length === 0) {
-      return { minTime: Date.now(), maxTime: Date.now() };
+      return { minTime: 0, maxTime: 0 };
     }
     // Thoughts might not be perfectly sorted, so let's find absolute min/max
     let min = thoughts[0].createdAt.getTime();
@@ -35,9 +35,9 @@ export function useTimelineFilter(thoughts: Thought[]) {
     return { minTime: min, maxTime: max };
   }, [thoughts]);
 
-  const { filteredThoughts, cutoffDate, cutoffText } = useMemo(() => {
+  const { filteredThoughts, cutoffDate } = useMemo(() => {
     if (thoughts.length === 0) {
-      return { filteredThoughts: thoughts, cutoffDate: new Date(), cutoffText: 'Today' };
+      return { filteredThoughts: thoughts, cutoffDate: new Date(0) };
     }
 
     // Calculate cutoff time based on the deferred 0-100 scrubber value
@@ -58,7 +58,6 @@ export function useTimelineFilter(thoughts: Thought[]) {
     return {
       filteredThoughts: filtered,
       cutoffDate: dateObj,
-      cutoffText: text,
     };
   }, [thoughts, minTime, maxTime, deferredValue]);
 

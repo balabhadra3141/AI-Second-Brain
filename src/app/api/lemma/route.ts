@@ -29,7 +29,7 @@ try {
   if (cliToken) {
     console.log('[Lemma API] Successfully retrieved local CLI token.');
   }
-} catch (e) {
+} catch {
   console.warn('[Lemma API] Could not fetch CLI token. Ensure you ran `lemma auth login`.');
 }
 
@@ -39,6 +39,7 @@ try {
 // a lightweight mock that simply injects the CLI Bearer token.
 
 const serverAuthManager = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getRequestInit: (init: any = {}) => ({
     ...init,
     headers: {
@@ -71,6 +72,7 @@ const lemma = new LemmaClient({
   authUrl: process.env.LEMMA_AUTH_URL || 'http://127.0.0.1:3711/auth',
   podId: process.env.LEMMA_POD_ID || '019f0706-063e-71a5-8fbe-ce726b3dabbf',
 }, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authManager: serverAuthManager as any
 });
 

@@ -72,7 +72,7 @@ export default function SpatialGrid({
 
         <AnimatePresence mode="popLayout">
           {thoughts.map((thought, index) => {
-            const originalId = (thought as any).originalId || thought.id;
+            const originalId = (thought as Thought & { originalId?: string }).originalId || thought.id;
             const isFocused = thought.id === focusedThoughtId;
             
             const cardContent = (() => {

@@ -138,7 +138,7 @@ export default function Home() {
             thoughts.map((t) => ({ id: t.id, type: t.type, content: t.content, createdAt: t.createdAt }))
           );
           setLemmaAnswer(answer);
-        } catch (err) {
+        } catch {
           setLemmaAnswer('Lemma could not process your question. Please check that the local stack is running.');
         } finally {
           setIsQuerying(false);

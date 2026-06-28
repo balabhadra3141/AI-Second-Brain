@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Monitor, Sun, Moon, Type, AlignJustify, LayoutGrid } from 'lucide-react';
+import { Monitor, Sun, Moon } from 'lucide-react';
 import { AppSettings, Theme, Typography, GridDensity } from '@/hooks/useSettings';
 
 interface AppearanceSectionProps {

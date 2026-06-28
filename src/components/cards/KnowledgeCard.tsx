@@ -43,8 +43,9 @@ export default function KnowledgeCard({ thought, onDelete, onRetry, onUpdate, on
   const [isEditing, setIsEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  const { preview, hasMore } = excerpt(thought.content, 22);
-  const displayContent = expanded ? cleanMarkdown(thought.content) : preview;
+  // Show full content by default for knowledge cards
+  const displayContent = thought.content;
+  const hasMore = false;
 
   return (
     <CardWrapper

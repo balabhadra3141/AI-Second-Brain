@@ -25,6 +25,7 @@ const priorityStyles: Record<Priority, { dot: string; label: string; pill: strin
 
 export default function TaskCard({ thought, onToggle, onDelete, onRetry, onUpdate, onSynthesize, isFocused }: TaskCardProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const priority = thought.priority || 'low';
   const ps = priorityStyles[priority];
 

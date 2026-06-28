@@ -43,7 +43,7 @@ export default function IdeaCard({ thought, onDelete, onRetry, onUpdate, onSynth
   const cleaned = cleanContent(thought.content);
   const words = cleaned.split(/\s+/);
   const isLong = words.length > 20;
-  const preview = isLong && !expanded ? words.slice(0, 20).join(' ') + '…' : cleaned;
+  const preview = isLong && !expanded ? words.slice(0, 20).join(' ') + '…' : thought.content;
 
   return (
     <CardWrapper

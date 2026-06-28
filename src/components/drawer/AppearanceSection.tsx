@@ -23,7 +23,7 @@ const THEMES: {
     label: 'Paper',
     description: 'Warm editorial light',
     icon: Sun,
-    preview: { bg: '#FCFCFA', card: '#FFFFFF', text: '#1A1A1A', border: '#E8E6E1' },
+    preview: { bg: '#F4EFE6', card: '#FCFAF5', text: '#2C2825', border: '#E6DFD3' },
   },
   {
     id: 'onyx',

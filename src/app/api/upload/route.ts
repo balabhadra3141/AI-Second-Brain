@@ -217,7 +217,15 @@ ${parsedText.slice(0, 10000)}
       throw new Error(`Failed to classify/structure PDF content. LLM output: ${raw}`);
     }
 
-    // 4. Create database record in the "thoughts" table
+    // 4. Create database record in the "documents" table first to get its ID
+    const docRecord = await lemma.records.create("documents", {
+      title: file.name,
+      file_path: `/documents/${file.name}`,
+      status: 'processed',
+      summary: parsedThought.insights || ''
+    });
+
+    // 5. Create database record in the "thoughts" table linked to the document
     const record = await lemma.records.create("thoughts", {
       title: file.name.slice(0, 50),
       content: parsedThought.content,
@@ -230,14 +238,8 @@ ${parsedText.slice(0, 10000)}
       next_steps: parsedThought.nextSteps || [],
       tags: parsedThought.tags || ['pdf', 'document'],
       completed: false,
-    });
-
-    // 5. Create database record in the "documents" table
-    await lemma.records.create("documents", {
-      title: file.name,
-      file_path: `/documents/${file.name}`,
-      status: 'processed',
-      summary: parsedThought.insights || ''
+      document_id: docRecord.id,
+      source: file.name
     });
 
     console.log(`[Upload API] Created thought record ${record.id} and document entry.`);

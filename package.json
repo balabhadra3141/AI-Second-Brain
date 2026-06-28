@@ -16,6 +16,7 @@
     "lemma-sdk": "^0.5.2",
     "lucide-react": "^1.21.0",
     "next": "16.2.9",
+    "pdfjs-dist": "^6.1.200",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "shadcn": "^4.11.1",

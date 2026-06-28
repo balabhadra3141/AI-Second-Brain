@@ -95,7 +95,9 @@ type LemmaAction =
   | 'create_relationship'
   | 'delete_relationship'
   | 'run_insights'
-  | 'run_action';
+  | 'run_action'
+  | 'list_documents'
+  | 'delete_document';
 
 interface ClassifyPayload {
   action: 'classify';
@@ -135,6 +137,8 @@ async function drainStream(stream: ReadableStream<Uint8Array>): Promise<string> 
     const payload = parseSSEJson(event);
     if (!payload) continue;
     const parsed = parseAssistantStreamEvent(payload);
+    console.log("[drainStream] payload:", JSON.stringify(payload).substring(0, 200));
+    console.log("[drainStream] parsed:", JSON.stringify(parsed));
     if (parsed.token && (!parsed.tokenKind || parsed.tokenKind === 'text')) {
       fullText += parsed.token;
     } else if (parsed.message && parsed.message.role === 'assistant' && parsed.message.text) {
@@ -143,6 +147,7 @@ async function drainStream(stream: ReadableStream<Uint8Array>): Promise<string> 
       }
     }
   }
+  console.log("[drainStream] final text length:", fullText.length);
   return fullText.trim();
 }
 
@@ -425,6 +430,46 @@ async function handleListRelationships() {
   return NextResponse.json({ ok: true, items: response.items });
 }
 
+async function handleListDocuments() {
+  const response = await lemma.records.list("documents", { limit: 100 });
+  return NextResponse.json({ ok: true, items: response.items });
+}
+
+async function handleDeleteDocument(body: any) {
+  const { id, file_path } = body;
+  if (!id || !file_path) throw new Error("Missing id or file_path for document deletion");
+
+  // 1. Safe Filesystem Deletion
+  try {
+    await lemma.files.delete(file_path);
+  } catch (err: any) {
+    // Suppress purely "Not Found" errors so the DB cleanup still completes
+    if (err?.code !== 'DATASTORE_NOT_FOUND' && err?.statusCode !== 404) {
+      console.warn('[Lemma API] Non-fatal error deleting file from datastore:', err.message || err);
+    }
+  }
+
+  // 2. Database Document Deletion
+  await lemma.records.delete("documents", id);
+
+  // 3. Orphan Cleanup (remove document_id from extracted thoughts)
+  try {
+    const response = await lemma.records.list("thoughts", { limit: 500 });
+    const orphans = (response.items || []).filter((t: any) => t.document_id === id);
+    
+    for (const orphan of orphans) {
+      await lemma.records.update("thoughts", orphan.id, {
+        document_id: null,
+        source: null
+      });
+    }
+  } catch (cleanupErr) {
+    console.error('[Lemma API] Orphan cleanup failed:', cleanupErr);
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
 async function handleCreateRelationship(body: any) {
   const record = await lemma.records.create("relationships", body.payload);
   return NextResponse.json({ ok: true, record });
@@ -550,6 +595,10 @@ export async function POST(request: Request) {
         return handleRunInsights();
       case 'run_action':
         return handleRunAction(body);
+      case 'list_documents':
+        return handleListDocuments();
+      case 'delete_document':
+        return handleDeleteDocument(body);
       default:
         return NextResponse.json(
           { error: `Unknown action: ${(body as { action: string }).action}` },

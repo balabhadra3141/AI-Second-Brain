@@ -14,9 +14,11 @@ import { useSettings } from '@/hooks/useSettings';
 import { useTimelineFilter } from '@/hooks/useTimelineFilter';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, PanelLeftClose, PanelLeftOpen, Sparkles, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Plus, PanelLeftClose, PanelLeftOpen, Sparkles, ChevronRight, ChevronLeft, Info, ScanLine } from 'lucide-react';
+import OCRScanner from '@/components/OCRScanner';
 import KnowledgeGraph from '@/components/KnowledgeGraph';
 import SecondBrainChat from '@/components/SecondBrainChat';
+import DocumentsView from '@/components/DocumentsView';
 
 export default function Home() {
   const { 
@@ -50,9 +52,10 @@ export default function Home() {
   const { settings, updateSetting, resetSettings } = useSettings();
 
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-  const [mainView, setMainView] = useState<'grid' | 'graph' | 'chat'>('grid');
+  const [mainView, setMainView] = useState<'grid' | 'graph' | 'chat' | 'files'>('grid');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const { focusedThoughtId } = useSpatialNavigation(isPaletteOpen);
 
   // Drawer state
@@ -326,24 +329,61 @@ export default function Home() {
               )}
               <div className="flex flex-1 bg-surface-raised border border-border-subtle/60 p-1 rounded-2xl gap-1 shadow-sm">
                 {[
-                  { id: 'grid' as const, label: 'Spatial Grid' },
-                  { id: 'graph' as const, label: 'Knowledge Graph' },
-                  { id: 'chat' as const, label: 'Second Brain' },
-                ].map(({ id, label }) => (
+                  { id: 'grid' as const, label: 'Spatial Grid', description: 'Your primary workspace. Visually organize, merge, and interact with all your captured thoughts.' },
+                  { id: 'graph' as const, label: 'Knowledge Graph', description: 'A visual web of connections. See how your ideas relate to each other based on AI analysis.' },
+                  { id: 'chat' as const, label: 'Second Brain', description: 'Your AI assistant. Ask questions and get answers synthesized directly from your personal knowledge base.' },
+                  { id: 'files' as const, label: 'Documents', description: 'Manage uploaded files and scanned documents.' },
+                ].map(({ id, label, description }) => (
                   <button
                     key={id}
                     onClick={() => setMainView(id)}
-                    className={`flex-1 text-center py-2.5 text-[12px] font-semibold rounded-xl transition-all duration-150 cursor-pointer ${
+                    title={description}
+                    className={`group flex items-center justify-center gap-1.5 flex-1 py-2.5 text-[12px] font-semibold rounded-xl transition-all duration-150 cursor-pointer ${
                       mainView === id
                         ? 'bg-foreground text-background shadow-sm'
                         : 'text-ink-muted hover:bg-surface-card hover:text-foreground'
                     }`}
                   >
-                    {label}
+                    <span>{label}</span>
+                    <Info size={13} className="opacity-50 group-hover:opacity-100 transition-opacity" />
                   </button>
                 ))}
               </div>
+              <button
+                onClick={() => setIsScannerOpen(!isScannerOpen)}
+                className={`flex h-[42px] px-4 gap-2 flex-shrink-0 items-center justify-center rounded-xl border transition-all cursor-pointer ${
+                  isScannerOpen
+                    ? 'border-foreground bg-foreground text-background shadow-sm'
+                    : 'border-border-subtle bg-surface-raised text-ink-faint hover:text-foreground hover:border-border-hover shadow-sm'
+                }`}
+                title="Scan document (OCR)"
+              >
+                <ScanLine size={14} strokeWidth={2} />
+                <span className="text-[12px] font-semibold hidden sm:inline">Scan</span>
+              </button>
             </div>
+
+            {/* OCR Scanner Panel */}
+            <AnimatePresence>
+              {isScannerOpen && (
+                <motion.div
+                  key="ocr-scanner"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-4 overflow-hidden"
+                >
+                  <OCRScanner
+                    onScanComplete={(text) => {
+                      setIsScannerOpen(false);
+                      addThought(text);
+                      setScrubberValue(100);
+                    }}
+                    onClose={() => setIsScannerOpen(false)}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* View Contents */}
             {isUploadingPdf && (
@@ -386,6 +426,10 @@ export default function Home() {
                 onAddThoughtDirectly={addThoughtDirectly}
                 onSelectView={setMainView}
               />
+            )}
+
+            {!isUploadingPdf && mainView === 'files' && (
+              <DocumentsView />
             )}
           </div>
         </div>

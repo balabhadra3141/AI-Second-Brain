@@ -3,36 +3,40 @@ import { execSync } from 'child_process';
 import { LemmaClient, readSSE, parseSSEJson, parseAssistantStreamEvent } from 'lemma-sdk';
 
 // ─── Token Retrieval ─────────────────────────────────────────────────────────
-let cliToken = '';
-try {
-  cliToken = execSync('lemma auth print-token', { encoding: 'utf-8' }).trim();
-} catch (e) {
-  console.warn('[Lemma Upload API] Could not fetch CLI token via CLI.');
-}
-// Fallback to environment variable if CLI token not available
-if (!cliToken && process.env.LEMMA_API_TOKEN) {
-  cliToken = process.env.LEMMA_API_TOKEN;
-  console.info('[Lemma Upload API] Using Lemma token from env variable.');
-}
-if (!cliToken) {
-  console.error('[Lemma Upload API] No Lemma authentication token available.');
+let cachedToken = '';
+let lastFetched = 0;
+function getApiToken(): string {
+  const now = Date.now();
+  if (cachedToken && (now - lastFetched < 300000)) { // 5 minutes cache
+    return cachedToken;
+  }
+  try {
+    cachedToken = execSync('lemma auth print-token', { encoding: 'utf-8' }).trim();
+    lastFetched = now;
+    return cachedToken;
+  } catch (e) {
+    return process.env.LEMMA_API_TOKEN || '';
+  }
 }
 
 const serverAuthManager = {
-  getRequestInit: (init: any = {}) => ({
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...init.headers,
-      ...(cliToken ? { Authorization: `Bearer ${cliToken}` } : {}),
-    },
-  }),
+  getRequestInit: (init: any = {}) => {
+    const token = getApiToken();
+    return {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...init.headers,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    };
+  },
   isTokenMode: true,
-  getBearerToken: () => cliToken,
+  getBearerToken: () => getApiToken(),
   getState: () => ({ status: 'authenticated', user: null }),
   isAuthenticated: () => true,
-  subscribe: () => () => {},
+  subscribe: () => () => { },
   checkAuth: async () => ({ status: 'authenticated', user: null }),
   markUnauthenticated: () => {
     console.warn('[Lemma Auth] markUnauthenticated was called.');
@@ -40,14 +44,15 @@ const serverAuthManager = {
   signOut: async () => true,
   getAuthUrl: () => '',
   getFederatedLogoutUrl: () => '',
-  redirectToAuth: () => {},
-  redirectToFederatedLogout: async () => {},
+  redirectToAuth: () => { },
+  redirectToFederatedLogout: async () => { },
 };
 
 const lemma = new LemmaClient({
   apiUrl: process.env.LEMMA_API_URL || 'http://127.0.0.1:8711',
   authUrl: process.env.LEMMA_AUTH_URL || 'http://127.0.0.1:3711/auth',
-  podId: process.env.LEMMA_POD_ID || '019f0706-063e-71a5-8fbe-ce726b3dabbf',
+  podId: process.env.LEMMA_POD_ID,
+  timeoutMs: 120000,
 }, {
   authManager: serverAuthManager as any
 });
@@ -104,7 +109,7 @@ function extractJson<T>(raw: string): T | null {
 // ─── POST handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
-  if (!cliToken) {
+  if (!getApiToken()) {
     return NextResponse.json({ error: 'Authentication token missing for Lemma SDK' }, { status: 401 });
   }
 
@@ -121,7 +126,7 @@ export async function POST(request: Request) {
     // 1. Convert File to Blob and upload to Lemma File Datastore
     const arrayBuffer = await file.arrayBuffer();
     const blob = new Blob([arrayBuffer], { type: file.type });
-    
+
     // Ensure the documents folder exists
     try {
       await lemma.files.folder.create('documents', { directoryPath: '/' });

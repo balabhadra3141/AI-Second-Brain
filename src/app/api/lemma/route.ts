@@ -23,14 +23,20 @@ import { LemmaClient, readSSE, parseSSEJson, parseAssistantStreamEvent } from 'l
 // ─── Token Retrieval ─────────────────────────────────────────────────────────
 // HACKATHON REQUIREMENT: Automatically authenticate the server-side SDK using
 // the local CLI session.
-let cliToken = '';
-try {
-  cliToken = execSync('lemma auth print-token', { encoding: 'utf-8' }).trim();
-  if (cliToken) {
-    console.log('[Lemma API] Successfully retrieved local CLI token.');
+let cachedToken = '';
+let lastFetched = 0;
+function getApiToken(): string {
+  const now = Date.now();
+  if (cachedToken && (now - lastFetched < 300000)) { // 5 minutes cache
+    return cachedToken;
   }
-} catch {
-  console.warn('[Lemma API] Could not fetch CLI token. Ensure you ran `lemma auth login`.');
+  try {
+    cachedToken = execSync('lemma auth print-token', { encoding: 'utf-8' }).trim();
+    lastFetched = now;
+    return cachedToken;
+  } catch (e) {
+    return process.env.LEMMA_API_TOKEN || '';
+  }
 }
 
 // ─── Custom Auth Manager ──────────────────────────────────────────────────────
@@ -40,17 +46,20 @@ try {
 
 const serverAuthManager = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getRequestInit: (init: any = {}) => ({
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...init.headers,
-      ...(cliToken ? { Authorization: `Bearer ${cliToken}` } : {}),
-    },
-  }),
+  getRequestInit: (init: any = {}) => {
+    const token = getApiToken();
+    return {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...init.headers,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    };
+  },
   isTokenMode: true,
-  getBearerToken: () => cliToken,
+  getBearerToken: () => getApiToken(),
   getState: () => ({ status: 'authenticated', user: null }),
   isAuthenticated: () => true,
   subscribe: () => () => {},
@@ -71,6 +80,7 @@ const lemma = new LemmaClient({
   apiUrl: process.env.LEMMA_API_URL || 'http://127.0.0.1:8711',
   authUrl: process.env.LEMMA_AUTH_URL || 'http://127.0.0.1:3711/auth',
   podId: process.env.LEMMA_POD_ID || '019f0706-063e-71a5-8fbe-ce726b3dabbf',
+  timeoutMs: 120000,
 }, {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authManager: serverAuthManager as any

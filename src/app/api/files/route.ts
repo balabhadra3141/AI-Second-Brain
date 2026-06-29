@@ -2,23 +2,35 @@ import { NextResponse } from 'next/server';
 import { LemmaClient } from 'lemma-sdk';
 import { execSync } from 'child_process';
 
-let cliToken = '';
-try {
-  cliToken = execSync('lemma auth print-token', { encoding: 'utf-8' }).trim();
-} catch (e) {
-  cliToken = process.env.LEMMA_API_TOKEN || '';
+let cachedToken = '';
+let lastFetched = 0;
+function getApiToken(): string {
+  const now = Date.now();
+  if (cachedToken && (now - lastFetched < 300000)) { // 5 minutes cache
+    return cachedToken;
+  }
+  try {
+    cachedToken = execSync('lemma auth print-token', { encoding: 'utf-8' }).trim();
+    lastFetched = now;
+    return cachedToken;
+  } catch (e) {
+    return process.env.LEMMA_API_TOKEN || '';
+  }
 }
 
 const serverAuthManager = {
-  getRequestInit: (init: any = {}) => ({
-    ...init,
-    headers: {
-      ...init.headers,
-      ...(cliToken ? { Authorization: `Bearer ${cliToken}` } : {}),
-    },
-  }),
+  getRequestInit: (init: any = {}) => {
+    const token = getApiToken();
+    return {
+      ...init,
+      headers: {
+        ...init.headers,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    };
+  },
   isTokenMode: true,
-  getBearerToken: () => cliToken,
+  getBearerToken: () => getApiToken(),
   getState: () => ({ status: 'authenticated', user: null }),
   isAuthenticated: () => true,
   subscribe: () => () => {},
@@ -35,6 +47,7 @@ const lemma = new LemmaClient({
   apiUrl: process.env.LEMMA_API_URL || 'http://127.0.0.1:8711',
   authUrl: process.env.LEMMA_AUTH_URL || 'http://127.0.0.1:3711/auth',
   podId: process.env.LEMMA_POD_ID || '019f0706-063e-71a5-8fbe-ce726b3dabbf',
+  timeoutMs: 120000,
 }, {
   authManager: serverAuthManager as any
 });
@@ -48,7 +61,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const blob = await lemma.files.children.content(path);
+    const blob = await lemma.files.download(path);
     const arrayBuffer = await blob.arrayBuffer();
     
     let mimeType = 'application/octet-stream';

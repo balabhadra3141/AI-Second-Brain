@@ -74,7 +74,7 @@ export default function VoiceVisualizer({ onTranscriptionComplete, onCancel }: V
         const updateVisualizer = () => {
           if (status !== 'listening') return;
           
-          analyser.getByteFrequencyData(dataArray);
+          analyser.getByteFrequencyData(dataArray as any);
 
           // Update DOM nodes directly to avoid React re-renders (60fps)
           for (let i = 0; i < BAR_COUNT; i++) {

@@ -6,6 +6,92 @@ import { Trash2, FileText, Image as ImageIcon, File, Loader2 } from 'lucide-reac
 import { useDocuments, Document } from '@/hooks/useDocuments';
 import DocumentViewerModal from './DocumentViewerModal';
 
+// ─── PDF.js Lazy Loader for Preview Thumbnails ────────────────────────────────
+let pdfjsLib: typeof import('pdfjs-dist') | null = null;
+
+async function getPdfjsLib() {
+  if (pdfjsLib) return pdfjsLib;
+  pdfjsLib = await import('pdfjs-dist');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+  return pdfjsLib;
+}
+
+function PdfThumbnail({ url }: { url: string }) {
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function loadThumbnail() {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to fetch PDF for thumbnail');
+        const buffer = await res.arrayBuffer();
+
+        const pdfjs = await getPdfjsLib();
+        const pdf = await pdfjs.getDocument({ data: buffer }).promise;
+        const page = await pdf.getPage(1);
+
+        const canvas = window.document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('No canvas context');
+
+        // Render at a low scale optimized for card thumbnails
+        const viewport = page.getViewport({ scale: 0.4 });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({
+          canvasContext: context,
+          viewport,
+          canvas
+        } as any).promise;
+
+        if (active) {
+          setThumbnailUrl(canvas.toDataURL());
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('[PdfThumbnail] Thumbnail error:', err);
+        if (active) {
+          setError(true);
+          setLoading(false);
+        }
+      }
+    }
+    loadThumbnail();
+    return () => {
+      active = false;
+    };
+  }, [url]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center w-full h-full bg-black/5 dark:bg-white/5">
+        <Loader2 size={16} className="animate-spin text-ink-faint" />
+      </div>
+    );
+  }
+
+  if (error || !thumbnailUrl) {
+    return (
+      <div className="flex items-center justify-center w-full h-full bg-black/5 dark:bg-white/5 text-ink-faint">
+        <FileText size={28} />
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={thumbnailUrl}
+      alt="PDF Preview"
+      className="w-full h-full object-cover opacity-75 group-hover:opacity-100 transition-opacity"
+    />
+  );
+}
+
 export default function DocumentsView() {
   const { documents, isLoading, loadDocuments, deleteDocument } = useDocuments();
   const [viewingDoc, setViewingDoc] = useState<Document | null>(null);
@@ -58,9 +144,11 @@ export default function DocumentsView() {
                     {isImage && doc.fileUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={doc.fileUrl} alt={doc.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
+                    ) : isPdf && doc.fileUrl ? (
+                      <PdfThumbnail url={doc.fileUrl} />
                     ) : (
                       <div className="text-ink-faint group-hover:text-knowledge-accent transition-colors">
-                        {isPdf ? <FileText size={32} /> : <File size={32} />}
+                        <File size={32} />
                       </div>
                     )}
                   </div>

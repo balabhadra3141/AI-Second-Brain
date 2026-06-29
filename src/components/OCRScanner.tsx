@@ -66,7 +66,7 @@ async function convertPdfToImage(file: File): Promise<string> {
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Could not create canvas 2D context');
 
-  await page.render({ canvasContext: context, viewport }).promise;
+  await page.render({ canvasContext: context, viewport, canvas }).promise;
   return canvas.toDataURL('image/png');
 }
 

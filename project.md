@@ -4,14 +4,16 @@
 1. [Overview](#overview)
 2. [Lemma Setup Guide](#lemma-setup-guide)
 3. [Core Functionalities](#core-functionalities)
-   - [1️⃣ StreamBrain Dashboard](#streambrain-dashboard)
-   - [2️⃣ Second‑Brain Chat](#second-brain-chat)
-   - [3️⃣ Knowledge Graph](#knowledge-graph)
-   - [4️⃣ File Upload & PDF Processing](#file-upload--pdf-processing)
-   - [5️⃣ Task & Insight Sidebar](#task--insight-sidebar)
-   - [6️⃣ Theme & UI Consistency](#theme--ui-consistency)
-   - [7️⃣ API & Authentication Layer](#api--authentication-layer)
-   - [8️⃣ Data Persistence (SQLite / Lemma SDK)](#data-persistence)
+   - [1️⃣ StreamBrain Dashboard & Spatial Grid](#1-streambrain-dashboard--spatial-grid)
+   - [2️⃣ Second‑Brain Chat](#2-second-brain-chat)
+   - [3️⃣ Knowledge Graph](#3-knowledge-graph)
+   - [4️⃣ File Ingestion & PDF Processing](#4-file-ingestion--pdf-processing)
+   - [5️⃣ AI OCR Handwriting & Math Scanner](#5-ai-ocr-handwriting--math-scanner)
+   - [6️⃣ Voice Recording & 60fps Visualizer](#6-voice-recording--60fps-visualizer)
+   - [7️⃣ Task & Insight Sidebar](#7-task--insight-sidebar)
+   - [8️⃣ Settings Drawer (Appearance, Vault, Intelligence)](#8-settings-drawer-appearance-vault-intelligence)
+   - [9️⃣ Time Scrubber & Semantic Minimap](#9-time-scrubber--semantic-minimap)
+   - [🔟 API & Authentication Layer](#-api--authentication-layer)
 4. [How to Verify / Demo Each Feature](#how-to-verify--demo-each-feature)
 5. [Running the Project Locally](#running-the-project-locally)
 6. [Build & Deployment Notes](#build--deployment-notes)
@@ -20,13 +22,7 @@
 ---
 
 ## Overview
-**AI‑Second‑Brain** (also branded as *StreamBrain*) is a modern, premium‑look personal knowledge‑management web app built with **Next.js 16 (TurboPack)**, **React**, **TypeScript**, and **vanilla CSS** (no Tailwind). It provides:
-- An interactive dashboard where notes, tasks and AI‑generated insights are visualised as *cards*.
-- A **Second‑Brain Chat** that talks to the Lemma LLM, cites sources, and can ingest uploaded PDFs.
-- A **Knowledge‑Graph** visualisation with a *dotted‑grid* background for a sleek dark‑/light‑mode experience.
-- A **collapsible left‑hand sidebar** for tasks/insights.
-- Robust **authentication fallback** and **token handling** for Lemma API calls.
-- Full **unit‑test** coverage for API routes and UI components.
+**AI‑Second‑Brain** (branded as *StreamBrain*) is a premium personal knowledge‑management system built with **Next.js 16 (TurboPack)**, **React**, **TypeScript**, and **vanilla Tailwind-free CSS**. It enables users to capture, map, scan, and converse with their personal notes, ideas, documents, and tasks through visual cards, dynamic graphs, voice inputs, and optical scanners.
 
 The project lives under `c:\Users\balab\OneDrive\Desktop\Works\AI-Second-Brain`.
 
@@ -64,156 +60,126 @@ Use this UUID value to update `LEMMA_POD_ID` in your `.env.local` configuration.
 ---
 
 ## Core Functionalities
-### 1️⃣ StreamBrain Dashboard
-- **Cards**: Represent *thoughts*, *tasks*, *documents*.
-- **Juggling**: Drag‑and‑drop re‑ordering; merging two cards creates a summarized card.
-- **Search**: Full‑text search across all stored thoughts.
-- **Export**: Export selected cards as JSON.
+
+### 1️⃣ StreamBrain Dashboard & Spatial Grid
+- **Thoughts Workspace**: Display thoughts as drag-and-drop cards positioned on an infinite 2D grid.
+- **Card Merging**: Dragging one card over another prompts a merge. The system routes the context through the `streambrain-synthesizer` agent to merge both cards into one rich, cohesive summary thought.
+- **DropZone Overlay**: Drag files directly from your computer anywhere onto the dashboard to activate the upload overlay.
 
 ### 2️⃣ Second‑Brain Chat
-- Messaging UI with **light‑mode surface‑raised cards**.
-- Each response includes **citations** (knowledge source, idea, task, etc.).
-- Supports **streamed LLM replies**, auto‑scroll, and copy‑to‑clipboard.
-- Ability to *continue a conversation* after page reload (state persisted in `localStorage`).
+- **Citation Tooltips**: Interactive chat interface where AI responses cite sources from your workspace (`[1]`, `[2]`). Hovering over citation tags opens tooltips containing details on the cited card (title, content, type).
+- **Persistent Conversation**: Chat history is cached in the client's `localStorage` so messages persist on reload.
 
 ### 3️⃣ Knowledge Graph
-- SVG‑based graph visualising relationships between thoughts, tasks, and documents.
-- Background is a **dotted grid** (SVG `<pattern>` with circles every 28 px).
-- Syncs the **theme** (light/dark) with the rest of the site.
-- Nodes are clickable – clicking opens the corresponding card in the dashboard.
+- **Dotted Grid Background**: Visual map styled with a HSL custom theme and an SVG `<circle>` pattern spacing dots at 28px intervals.
+- **Interactive Nodes**: Visualizes relationships between thoughts. Nodes are clickable, zooming the workspace straight to the selected card's grid coordinates.
 
-### 4️⃣ File Upload & PDF Processing
-- **Upload component** (`src/app/api/upload/route.ts`) accepts PDFs, images, txt.
-- **Lemma SDK** uploads file to `/documents` folder, extracts markdown/text.
-- Content is **classified** via `streambrain‑classifier` prompt into a JSON `Thought`.
-- Result stored in Lemma `thoughts` and `documents` tables.
-- Overwrites files gracefully on name conflicts by automatically cleaning up existing files first.
+### 4️⃣ File Ingestion & PDF Processing
+- **File Upload Endpoint**: Accepts PDF, text, and image uploads.
+- **Datastore Storage**: Files are saved directly to `/documents` in the Lemma Files Datastore.
+- **Graceful File Overwrite**: Deletes duplicate files at the path before uploading, resolving database conflict errors.
+- **Extraction & Classification**: Fallback APIs extract clean markdown text. The `streambrain-classifier` agent processes the file text to create a structured thought.
 
-### 5️⃣ Task & Insight Sidebar
-- Collapsible **left‑hand panel** that shows:
-  - Pending tasks (`tasks.json` under `streambrain/tables/tasks`).
-  - AI‑generated insights (e.g., “You should read this article”).
-- Toggle button persists open/closed state in `sessionStorage`.
+### 5️⃣ AI OCR Handwriting & Math Scanner
+- **PDF Canvas Extraction**: Renders the first page of an uploaded PDF file onto an off-screen `HTMLCanvasElement` at a 2.0 scale to keep math notation crisp.
+- **Vision Model API**: Sends the base64 PNG data URL to `/api/ocr`, using `openai/gpt-4o-mini` on OpenRouter to transcribe handwriting and LaTeX equations.
 
-### 6️⃣ Theme & UI Consistency
-- Global CSS variables for **primary**, **surface**, **border**, **radius**.
-- All components respect `prefers-color-scheme` and a manual **theme switch**.
-- Dark mode uses subtle **glass‑morphism** and vibrant gradients.
-- Light mode uses calm pastel accents.
+### 6️⃣ Voice Recording & 60fps Visualizer
+- **Web Audio Analyser**: Uses native `AudioContext` and `AnalyserNode` to capture mic signals.
+- **60fps Animation**: Bypasses React state update costs by updating the heights of a 24-bar frequency visualizer directly in the DOM.
+- **SpeechRecognition**: Direct browser transcription writes recognized words to thoughts.
 
-### 7️⃣ API & Authentication Layer
-- Centralised Lemma client mapping to active environment settings.
-- **Token fallback**: Tries `lemma auth print-token` (via child process); if that fails, reads the `LEMMA_API_TOKEN` env var.
-- Bypasses cookies via server-side Bearer authentication headers.
-- Handles standard HTTP errors cleanly, preventing browser JSON parsing errors.
+### 7️⃣ Task & Insight Sidebar
+- **Collapsible Panel**: Left sidebar holding insights and tasks.
+- **Workspace Analytics**: Triggers the `streambrain-insight` agent to audit notes and output insights like missing information warnings or task deadline notifications.
 
-### 8️⃣ Data Persistence
-- Primary storage is the **Lemma SDK** (remote) for thoughts & documents.
-- Local tasks are stored in **SQLite** (`tasks.json` is synced to DB via a tiny wrapper).
-- Client‑side caches use **React Query** for stale‑while‑revalidate.
+### 8️⃣ Settings Drawer (Appearance, Vault, Intelligence)
+- **Appearance**: Customize font styles (sans, serif, JetBrains Mono code), variables, radii, and widths.
+- **Intelligence**: Modify LLM model properties and access keys.
+- **Vault**: View database schemas and statistics for thoughts, documents, insights, relationships, etc.
+
+### 9️⃣ Time Scrubber & Semantic Minimap
+- **Time Scrubber**: Navigate thought capturing history on a timeline.
+- **Semantic Minimap**: Provides a map of thoughts categorized semantically.
+
+### 🔟 API & Authentication Layer
+- **Auth Fallback**: Bypasses cookies via server-side Bearer authorization headers from `lemma auth print-token` or `LEMMA_API_TOKEN`.
+- **Extended Timeout**: Set `timeoutMs` to 120 seconds to prevent heavy agent processes from timing out.
 
 ---
 
 ## How to Verify / Demo Each Feature
-Below is a step‑by‑step checklist you can run locally. Screenshots are provided in the `artifacts/` folder (referenced by links).
 
-### 1️⃣ Verify Dashboard UI
-1. Run `npm run dev` (see *Running Locally* section).
-2. Open `http://localhost:3000/`.
-3. Observe the **card layout** – cards should have rounded corners, drop‑shadows, and a light surface.
-4. Drag a card onto another – a modal appears asking to *Merge*; after confirming, a new *summary* card is created.
-5. Click the **search bar**, type a keyword (e.g., “meeting”), and confirm filtered results.
-
-> **Screenshot**: ![Dashboard](file:///C:/Users/balab/.gemini/antigravity-ide/brain/96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca/media_96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca_1782473610296.png)
+### 1️⃣ Verify Dashboard & Juggling
+1. Run `npm run dev` and navigate to `http://localhost:3000/`.
+2. Grab a card and drag it around the grid. Drag it over another card.
+3. Confirm the "Merge Thoughts" modal is triggered. Clicking "Merge" should replace both cards with a single synthesized card containing a summary.
+4. Drag a PDF file onto the page – verify that the `DropZoneOverlay` appears, blocking the page with an "Upload file" prompt.
 
 ### 2️⃣ Verify Second‑Brain Chat
-1. Click the **Chat** tab on the top navigation.
-2. Type `Explain the concept of embeddings.` and press **Enter**.
-3. The response should appear in a light‑mode card with **citation numbers** like `[1]` linking to the source.
-4. Hover a citation – a tooltip shows the source title and URL.
-5. Reload the page – the chat history persists.
-
-> **Screenshot**: ![Chat UI](file:///C:/Users/balab/.gemini/antigravity-ide/brain/96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca/media_96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca_1782473865306.png)
+1. Click the **Chat** tab.
+2. Ask: *"What thoughts do I have saved?"*
+3. The response should feature inline citations (`[1]`). Hovering over them should show a card tooltip with source metadata.
 
 ### 3️⃣ Verify Knowledge Graph
-1. Navigate to **Knowledge Graph** via the side menu.
-2. Confirm the **dotted‑grid** background (small circles spaced evenly).
-3. Click on any node – a tooltip shows the thought title; clicking opens the card.
-4. Toggle the **Theme Switch** – the graph background updates to a matching light/dark variant.
+1. Go to the **Knowledge Graph** tab.
+2. Confirm that the background displays a dotted pattern.
+3. Click a node in the graph; the view should navigate to the thought dashboard and center on the clicked card.
 
-> **Screenshot**: ![Graph Light](file:///C:/Users/balab/.gemini/antigravity-ide/brain/96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca/media_96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca_1782540019828.png)
+### 4️⃣ Verify File Ingestion & Duplicate Overwrite
+1. Upload a PDF from the file browser.
+2. Verify that it parses and creates a thought.
+3. Upload the exact same file again. Confirm it succeeds without crashing (resolving the previous `ConflictError` by deleting the old file first).
 
-### 4️⃣ Verify File Upload & PDF Processing
-1. In the dashboard, click the **Upload** button (top‑right).
-2. Select a PDF (e.g., `sample.pdf`).
-3. A spinner appears; after ~2 seconds the card list shows a new **Thought** titled “<PDF‑title>”.
-4. Open the card – the extracted text should be present; click **Classify** to see AI‑generated categories.
-5. Inspect the network tab – a `POST /api/upload` returns **200** with JSON containing `thoughtId`.
-6. Retrying the same upload should delete the duplicate file and succeed cleanly, avoiding DATSTORE conflict errors.
+### 5️⃣ Verify AI OCR Handwriting & LaTeX Scanner
+1. Open the **OCR Scanner** overlay.
+2. Drag/select an image or PDF containing handwriting or mathematical equations.
+3. Verify that the system transcribes it accurately using OpenRouter's vision model, printing mathematical formulas correctly.
 
-> **Screenshot**: ![Upload Error](file:///C:/Users/balab/.gemini/antigravity-ide/brain/96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca/media_96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca_1782540744940.png)
+### 6️⃣ Verify Voice Recording Visualizer
+1. Click the microphone icon to record a voice thought.
+2. Talk into the mic and verify that the 24 spectrum bars animate smoothly.
+3. Stop recording and verify that the transcribed text is written directly into your input.
 
-### 5️⃣ Verify Task & Insight Sidebar
-1. Click the **hamburger** icon on the left edge – the sidebar slides out.
-2. Under **Tasks**, you should see items from `streambrain/tables/tasks/tasks.json` (e.g., “Review quarterly report”).
-3. Click a task – the main view scrolls to the linked card.
-4. Add a new task via the **+** button; confirm it persists after page reload.
+### 7️⃣ Verify Sidebar & Insights
+1. Open the sidebar from the left edge.
+2. Click **Run Insights** and verify that StreamBrain generates insights based on the active notes.
+3. Toggle the sidebar and confirm that reloading the page keeps the sidebar in its toggle state (`sessionStorage`).
 
-> **Screenshot**: ![Sidebar](file:///C:/Users/balab/.gemini/antigravity-ide/brain/96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca/media_96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca_1782540724958.png)
-
-### 6️⃣ Verify Theme Sync
-1. Open **Settings** → **Theme** and toggle between *Light* and *Dark*.
-2. Confirm **all** components (Dashboard, Chat, Graph, Sidebar) change instantly and share the same palette.
-3. Verify that the **navbar** background matches the rest of the page (no stray dark sections).
-
-> **Screenshot**: ![Theme Switch](file:///C:/Users/balab/.gemini/antigravity-ide/brain/96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca/media_96c6c2e8-49f1-4c4b-bdab-fd9a222f03ca_1782535953690.png)
-
-### 7️⃣ Verify API Authentication Fallback
-1. Open a terminal in the project root.
-2. Run `node -e "require('./src/lib/lemma').testToken()"` (a helper script you can add) – it should log the token used.
-3. Temporarily rename the Lemma CLI binary or break the `lemma auth print-token` command, then restart the dev server.
-4. The server should log *“CLI token not available, using env token”* and continue to work (provided `LEMMA_API_TOKEN` is set).
-5. Remove the env var as well – API calls now return **401** and the UI shows a **toast** with *“Authentication failed – please set LEMMA_API_TOKEN or login via Lemma CLI.”*
+### 8️⃣ Verify Drawer & Vault Specs
+1. Click the settings gear icon to open the configuration drawer.
+2. Go to the **Vault** tab and inspect database stats, count records, and examine column types.
+3. Go to the **Appearance** tab, toggle a font or radius size, and verify that styles change immediately.
 
 ---
 
 ## Running the Project Locally
 ```bash
-# Clone (if not already present)
-git clone https://github.com/yourorg/AI-Second-Brain.git
-cd AI-Second-Brain
-
-# Install dependencies (uses npm)
+# Install dependencies
 npm install
 
-# Create a .env.local (copy from .env.example) and set:
-#   LEMMA_API_URL=https://api.lemma.work
-#   LEMMA_AUTH_URL=https://lemma.work/auth
-#   LEMMA_POD_ID=019f0706-063e-71a5-8fbe-ce726b3dabbf
+# Set up environment variables
+# Copy .env.example to .env.local and fill:
+# LEMMA_API_URL=https://api.lemma.work
+# LEMMA_AUTH_URL=https://lemma.work/auth
+# LEMMA_POD_ID=YOUR_LEMMA_POD_ID
+# OPENROUTER_API_KEY=YOUR_OPENROUTER_API_KEY
 
-# Start dev server
-npm run dev   # runs on http://localhost:3000
+# Start development server
+powershell -ExecutionPolicy Bypass -Command "npm run dev"
 ```
-Visit `http://localhost:3000` and follow the verification steps above.
 
 ---
 
 ## Build & Deployment Notes
-- **Production build**: `npm run build && npm start` (uses Next.js server‑side rendering).
-- **Dockerfile** is included for containerised deployment; ensure the Lemma SDK socket is mounted if running inside Docker.
-- **CI** runs unit tests (`npm test`) and a lint step (`npm run lint`).
+- **Production Compilation**: `powershell -ExecutionPolicy Bypass -Command "npm run build"`
+- **Start production server**: `npm run start`
 
 ---
 
-## Future Enhancements (Roadmap)
-| Priority | Feature | Description |
-|---|---|---|
-| 🚀 | **Offline mode** | Cache thoughts locally with IndexedDB and sync when online. |
-| 🎨 | **Customizable Themes** | Allow users to upload their own gradient/color palettes. |
-| 📊 | **Analytics Dashboard** | Show stats on number of thoughts, PDF uploads, AI token usage. |
-| 🔗 | **Knowledge‑Graph Edge Types** | Visual distinction between *task‑related* and *document‑related* edges. |
-| 🗂️ | **Bulk Import/Export** | CSV/JSON bulk import of tasks and thoughts. |
+## Future Enhancements
+- Offline persistence using local IndexedDB.
+- Graph edge distinction (differentiating task dependencies from document associations).
 
 ---
-
-*This documentation was generated on 2026‑06‑27 by Antigravity, the AI‑powered coding assistant.*
+*This documentation was generated on 2026‑06‑29 by Antigravity, the AI‑powered coding assistant.*

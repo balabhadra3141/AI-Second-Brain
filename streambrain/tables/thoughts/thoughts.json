@@ -14,7 +14,9 @@
     { "name": "insights", "type": "TEXT", "required": false },
     { "name": "next_steps", "type": "JSON", "required": false },
     { "name": "tags", "type": "JSON", "required": false },
-    { "name": "completed", "type": "BOOLEAN", "required": false, "default": false }
+    { "name": "completed", "type": "BOOLEAN", "required": false, "default": false },
+    { "name": "document_id", "type": "TEXT", "required": false },
+    { "name": "source", "type": "TEXT", "required": false }
   ],
   "config": {}
 }

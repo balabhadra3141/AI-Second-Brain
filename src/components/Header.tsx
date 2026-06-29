@@ -40,14 +40,9 @@ export default function Header({ status, onOpenPalette, onOpenDrawer }: HeaderPr
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4">
           {/* Wordmark */}
           <div className="flex items-center gap-2.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-foreground">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <circle cx="6" cy="6" r="2.5" fill="white" />
-                <circle cx="2" cy="2" r="1.2" fill="white" opacity="0.6" />
-                <circle cx="10" cy="2" r="1.2" fill="white" opacity="0.6" />
-                <circle cx="2" cy="10" r="1.2" fill="white" opacity="0.6" />
-                <circle cx="10" cy="10" r="1.2" fill="white" opacity="0.6" />
-              </svg>
+            <div className="flex h-6 w-6 items-center justify-center rounded-md overflow-hidden bg-foreground">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="StreamBrain Logo" className="h-full w-full object-cover" />
             </div>
             <h1 className="text-[15px] font-semibold tracking-tight text-foreground">
               StreamBrain

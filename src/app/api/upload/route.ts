@@ -216,10 +216,19 @@ ${parsedText.slice(0, 10000)}
 `.trim();
 
     const raw = await runPromptViaLemma('streambrain-classifier', prompt);
-    const parsedThought = extractJson<any>(raw);
+    let parsedThought = extractJson<any>(raw);
 
     if (!parsedThought) {
-      throw new Error(`Failed to classify/structure PDF content. LLM output: ${raw}`);
+      console.warn(`[Upload API] Failed to parse JSON from classifier. Raw output: "${raw}". Using fallback structured object.`);
+      parsedThought = {
+        type: 'knowledge',
+        content: `Document: ${file.name}\n\nThis document has been ingested and cataloged in the Vault.`,
+        priority: 'low',
+        deadline: null,
+        insights: 'Document ingested successfully.',
+        nextSteps: [],
+        tags: ['pdf', 'document']
+      };
     }
 
     // 4. Create database record in the "documents" table first to get its ID
